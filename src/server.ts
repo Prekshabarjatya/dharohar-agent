@@ -16,11 +16,6 @@ createServer(async (req, res) => {
   if (ORIGINS.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.writeHead(204).end();
-  if (req.method === 'GET' && req.url === '/models' && process.env.GOOGLE_GENERATIVE_AI_API_KEY) { // ponytail: temporary, remove once model is picked
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': process.env.GOOGLE_GENERATIVE_AI_API_KEY } });
-    const names = ((await r.json()).models || []).filter((m: any) => /gemma/i.test(m.name) && m.supportedGenerationMethods?.includes('generateContent')).map((m: any) => m.name);
-    return res.end(JSON.stringify(names));
-  }
   if (req.method === 'GET' && req.url === '/health') return res.end(`ok ${MODEL_INFO}`);
   if (req.method === 'GET') {
     const path = normalize(join(PUBLIC, decodeURIComponent((req.url || '/').split('?')[0]) === '/' ? 'index.html' : decodeURIComponent(req.url!.split('?')[0])));

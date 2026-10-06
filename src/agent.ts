@@ -27,7 +27,7 @@ export const searchHeritage = createTool({
 });
 
 // 2. Gemma: Google AI Studio > Groq > local Ollama, whichever key is set
-const MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_API_KEY ? process.env.GOOGLE_MODEL || 'gemma-3-27b-it'
+const MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_API_KEY ? process.env.GOOGLE_MODEL || 'gemma-4-31b-it'
   : process.env.GROQ_API_KEY ? process.env.GROQ_MODEL || 'gemma2-9b-it'
   : process.env.OLLAMA_MODEL || 'gemma3:4b';
 const PROVIDER = process.env.GOOGLE_GENERATIVE_AI_API_KEY ? 'google' : process.env.GROQ_API_KEY ? 'groq' : 'ollama';
