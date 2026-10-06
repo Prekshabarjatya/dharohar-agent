@@ -46,7 +46,7 @@ Then the walk page takes over: ordering stops into a route, geofences, wake lock
 
 ### Phase 1: Prove the idea
 
-One HTML file. Wikipedia's geosearch found monuments near a point, and the browser's built-in speech read their summaries aloud. It was rough, but it answered the only question that mattered: does listening while you walk feel better than reading? It did.
+One HTML file. Wikipedia's geosearch found monuments near a point, and the browser's built-in speech read their summaries aloud. It was rough, but it answered the first question: can a page find the history around you and read it aloud? It could.
 
 ### Phase 2: A real guide, with rules
 
@@ -86,7 +86,7 @@ The agent and the walk page run as one free **Render** web service. Going live t
 
 The first walks were hand-made for Indore and Ujjain. Now you can tap **Walk where I am** or type any place, and Dharohar builds a walk from the nearest heritage on Wikipedia's open geodata. It looks within 2 km first and widens to 10 km if needed, so a cricket stadium or a spread-out site like Mandu still gets a real walk.
 
-And the guide speaks **ten Indian languages**: English, Hindi, Marathi, Gujarati, Bengali, Punjabi, Tamil, Telugu, Kannada and Malayalam. Gemma writes natively in each one. ElevenLabs' multilingual model covers Hindi and Tamil, and the others go to `eleven_v3`. I checked every language against the API before shipping.
+And the guide speaks **ten Indian languages**: English, Hindi, Marathi, Gujarati, Bengali, Punjabi, Tamil, Telugu, Kannada and Malayalam. Gemma writes in the language itself, starting from a native opening line ("नमस्कार. तुमचा फोन खिशात ठेवा…" in Marathi). ElevenLabs' multilingual model covers Hindi and Tamil, and the others go to `eleven_v3`; I checked every language's voice against the API before shipping. Hindi and Marathi are tested end to end, script and audio.
 
 All of it is held to **13 evals** (`npm test`).
 
