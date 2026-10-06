@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json">
+<title>Dharohar</title>
+<style>
+:root{--bg:#f6efe3;--ink:#2b1d12;--mut:#6e5946;--acc:#a8401f;--card:#fffaf2;--line:#e4d6c1}
+@media (prefers-color-scheme:dark){:root{--bg:#1b140e;--ink:#f3e8d8;--mut:#b8a38d;--acc:#e8875f;--card:#261c14;--line:#3a2c20}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font:18px/1.5 system-ui,sans-serif}
+main{max-width:560px;margin:auto;padding:28px 16px}
+h1{font:700 2.4rem Georgia,serif;color:var(--acc)}
+.tag{color:var(--mut);margin:6px 0 24px;font-size:1.1rem}
+.walk{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin:12px 0;color:inherit;font:inherit;cursor:pointer;min-height:96px}
+.walk h2{font:600 1.3rem Georgia,serif}
+.walk p{color:var(--mut);font-size:.95rem}
+.walk:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+#stage{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;padding:24px;text-align:center;background:var(--bg)}
+#stage.black{background:#000;color:#fff}
+#msg{font:600 1.5rem Georgia,serif;max-width:22ch}
+#play{display:none;width:200px;height:200px;border-radius:50%;border:2px solid #fff;background:transparent;color:#fff;font:700 1.2rem system-ui;letter-spacing:.1em;animation:pulse 2s infinite;cursor:pointer}
+@keyframes pulse{50%{transform:scale(1.06);box-shadow:0 0 40px #fff4}}
+@media (prefers-reduced-motion:reduce){#play{animation:none}}
+#exit{position:fixed;top:max(12px,env(safe-area-inset-top));right:12px;opacity:.3;background:none;border:1px solid currentColor;color:inherit;border-radius:8px;padding:8px 12px;font:600 .8rem system-ui;cursor:pointer}
+#exit:hover,#exit:focus{opacity:1}
+#note{position:fixed;bottom:15%;left:0;right:0;text-align:center;opacity:0;transition:opacity .8s;color:#fff}
+#note.show{opacity:.5}
+</style>
+</head>
+<body>
+<main id="home">
+  <h1>धरोहर Dharohar</h1>
+  <p class="tag">Put your phone in your pocket. Let's walk.</p>
+  <div id="walks"></div>
+</main>
+
+<div id="stage" role="main" aria-live="polite">
+  <button id="exit">EXIT WALK</button>
+  <p id="msg"></p>
+  <button id="play">PLAY AUDIO</button>
+  <p id="note"></p>
+</div>
+
+<script type="module">
+import { WALKS, reachedWaypoint } from '/walk-core.js';
+const $ = id => document.getElementById(id);
+const audio = new Audio();
+let tours = [], played = new Set(), watchId = null, wake = null, queue = [];
+
+$('walks').innerHTML = WALKS.map(w => `<button class="walk" data-slug="${w.slug}">
+  <h2>${w.name}</h2><p>${w.city} · ${w.waypoints.length} stops · about ${w.minutes} min walk</p></button>`).join('');
+document.querySelectorAll('.walk').forEach(b => b.onclick = () => location.hash = '/walk/' + b.dataset.slug);
+
+function show(mode) {
+  $('home').style.display = mode === 'home' ? 'block' : 'none';
+  $('stage').style.display = mode === 'home' ? 'none' : 'flex';
+  $('stage').classList.toggle('black', mode === 'black');
+}
+
+async function startWalk(walk) {
+  show('stage'); played = new Set(); tours = [];
+  $('play').style.display = 'none';
+  for (const [i, w] of walk.waypoints.entries()) { // sequential: one Gemma at a time
+    $('msg').textContent = `Dharohar is unpacking 500 years of history… (${i + 1}/${walk.waypoints.length})`;
+    const r = await fetch('/script', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monument: w.monument }) }).catch(() => null);
+    tours.push(r?.ok ? await r.json() : { script: `${w.label}.`, audioUrl: null });
+  }
+  for (let n = 10; n > 0; n--) {
+    if (!location.hash.endsWith(walk.slug)) return; // exited during countdown
+    $('msg').textContent = `Put your phone in your pocket in ${n}…`;
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  show('black'); $('msg').textContent = ''; $('play').style.display = 'block';
+  $('play').onclick = () => {
+    $('play').style.display = 'none';
+    navigator.wakeLock?.request('screen').then(l => wake = l).catch(() => {}); // screen-off kills GPS + audio
+    playStop(walk, 0);
+    track(walk);
+  };
+}
+
+function playStop(walk, i) {
+  if (played.has(i)) return;
+  played.add(i);
+  navigator.vibrate?.(200);
+  note(`You've reached: ${walk.waypoints[i].label}`);
+  const t = tours[i];
+  queue.push(() => t.audioUrl ? (audio.src = t.audioUrl, audio.play()) : speak(t.script));
+  if (queue.length === 1) queue[0]();
+}
+audio.onended = () => { queue.shift(); queue[0]?.(); };
+function speak(text) { // ElevenLabs failed -> phone voice
+  const u = new SpeechSynthesisUtterance(text); u.lang = 'en-IN'; u.onend = audio.onended;
+  speechSynthesis.speak(u);
+}
+
+function note(text) {
+  $('note').textContent = text; $('note').classList.add('show');
+  setTimeout(() => $('note').classList.remove('show'), 3000);
+}
+
+function track(walk) {
+  // demo / no-GPS fallback: double-tap the black screen for the next stop
+  $('stage').ondblclick = () => { const i = walk.waypoints.findIndex((_, k) => !played.has(k)); if (i >= 0) playStop(walk, i); };
+  if (!navigator.geolocation) return $('msg').textContent = 'Please enable location to unlock the walk';
+  watchId = navigator.geolocation.watchPosition(p => {
+    const i = reachedWaypoint({ lat: p.coords.latitude, lng: p.coords.longitude }, walk.waypoints, played);
+    if (i >= 0) playStop(walk, i);
+  }, () => $('msg').textContent = 'Please enable location to unlock the walk. (Double-tap to hear the next stop.)',
+  { enableHighAccuracy: true, maximumAge: 5000 });
+}
+
+function stop() {
+  audio.pause(); speechSynthesis.cancel(); queue = [];
+  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  watchId = null; wake?.release(); wake = null;
+}
+$('exit').onclick = () => { location.hash = ''; };
+
+function route() {
+  stop();
+  const walk = WALKS.find(w => location.hash === '#/walk/' + w.slug);
+  walk ? startWalk(walk) : show('home');
+}
+addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>

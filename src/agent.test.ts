@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { existsSync } from 'node:fs';
+import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
+import { existsSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { generateWalkingTour } from './agent';
 import { AUDIO_DIR } from './tools/generateAudio';
@@ -19,6 +19,9 @@ function stubElevenLabs(behaviour: 'ok' | 'fail') {
   process.env.ELEVENLABS_API_KEY ||= 'test-key';
 }
 afterEach(() => vi.unstubAllGlobals());
+afterAll(() => { // remove the 4-byte fake mp3s the stub wrote
+  for (const f of readdirSync(AUDIO_DIR)) if (f.endsWith('.mp3') && statSync(join(AUDIO_DIR, f)).size < 100) unlinkSync(join(AUDIO_DIR, f));
+});
 
 describe.each(['Rajwada, Indore', 'Mahakaleshwar Temple, Ujjain'])('script rules: %s', (monument) => {
   it('writes a short, audio-only script', async () => {

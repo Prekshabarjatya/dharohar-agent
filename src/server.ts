@@ -1,10 +1,11 @@
-// POST /script {monument} -> {script, audioUrl, duration, warning?}; GET /audio/<file>.mp3. Plain node:http, runs on Render or a DigitalOcean Droplet as-is.
+// POST /script {monument} -> {script, audioUrl, duration, warning?}; GET / serves the walk UI from public/. Plain node:http, runs on Render or a DigitalOcean Droplet as-is.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { join, basename } from 'node:path';
-import { AUDIO_DIR } from './tools/generateAudio';
+import { join, normalize, extname, sep } from 'node:path';
 import { generateWalkingTour } from './agent';
 
+const PUBLIC = join(process.cwd(), 'public');
+const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/manifest+json', '.mp3': 'audio/mpeg', '.svg': 'image/svg+xml' };
 const ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://dharohar-a03.pages.dev,http://localhost:8000').split(',');
 
 createServer(async (req, res) => {
@@ -13,9 +14,10 @@ createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.writeHead(204).end();
   if (req.method === 'GET' && req.url === '/health') return res.end('ok');
-  if (req.method === 'GET' && req.url?.startsWith('/audio/')) {
-    const f = basename(req.url); // basename blocks ../ traversal
-    return readFile(join(AUDIO_DIR, f)).then(b => res.writeHead(200, { 'Content-Type': 'audio/mpeg' }).end(b), () => res.writeHead(404).end());
+  if (req.method === 'GET') {
+    const path = normalize(join(PUBLIC, decodeURIComponent((req.url || '/').split('?')[0]) === '/' ? 'index.html' : decodeURIComponent(req.url!.split('?')[0])));
+    if (!path.startsWith(PUBLIC + sep)) return res.writeHead(403).end(); // blocks ../ traversal
+    return readFile(path).then(b => res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream' }).end(b), () => res.writeHead(404).end());
   }
   if (req.method !== 'POST' || req.url !== '/script') return res.writeHead(404).end();
 
