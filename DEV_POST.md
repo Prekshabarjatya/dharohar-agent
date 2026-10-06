@@ -61,7 +61,7 @@ I built this with an AI coding agent (Claude Code): I set the concept, the rules
 
 ## My Agent Session
 
-<!-- DevRelay agent_session embed -->
+{% agent_session 575 %}
 
 ## Prize Categories
 
