@@ -42,7 +42,8 @@ Phones pause GPS and web audio when the screen locks. So Dharohar keeps the scre
 - **Mastra** holds the agent, its instructions and its two tools (`search-heritage`, `generate-audio`).
 - **SerpApi** grounds every script in live search results, so Gemma does not have to invent history.
 - **ElevenLabs** `eleven_multilingual_v2` gives the guide a voice, and can speak Hindi.
-- **DigitalOcean**: App Platform runs the agent and walk UI from the repo's Dockerfile (`.do/app.yaml`); Gemma runs on a 1-Click Ollama GPU Droplet. <!-- keep only once deployed; else swap to Render -->
+- **Render** hosts the agent and the walk UI as one free Node web service, auto-deployed from GitHub (`render.yaml`).
+- **Groq** serves Gemma in production (fast, open-weight); locally the same code runs Gemma 3 through Ollama.
 - **Sentry** traces every tour as an agent run: SerpApi call, Gemma call (model, input/output tokens) and ElevenLabs call, each as its own span.
 
 One honest note on the architecture: small Gemma models don't do native tool-calling in Ollama, so instead of asking the model to call tools, the pipeline calls them in order (search → write → speak). It's simpler and more reliable than hoping a 4B model picks the right tool.
@@ -71,7 +72,7 @@ One eval taught me something: the first version passed every format check while 
 
 <!-- screenshot: Sentry AI Agents view / trace waterfall for one tour -->
 
-Each tour is one `invoke_agent dharohar-guide` trace with three child spans: `execute_tool search-heritage`, `chat gemma3:4b` (with token counts), and `execute_tool generate-audio`. The first trace showed the problem straight away: <!-- fill in what you saw, e.g. Gemma on a laptop took ~90 s per stop while SerpApi and ElevenLabs took ~1-3 s, which is why scripts and audio are now cached and the GPU Droplet matters -->.
+Each tour is one `invoke_agent dharohar-guide` trace with three child spans: `execute_tool search-heritage`, `chat gemma3:4b` (with token counts), and `execute_tool generate-audio`. The first trace showed the problem straight away: <!-- fill in what you saw, e.g. Gemma on a laptop took ~90 s per stop while SerpApi and ElevenLabs took ~1-3 s, which is why scripts and audio are now cached and production uses Groq -->.
 
 ## How I built it
 
@@ -83,14 +84,14 @@ I built Dharohar with an AI coding agent (Claude Code). I wrote the concept, the
 - **ElevenLabs**: the guide's voice, four selectable voices, cached per stop.
 - **SerpApi**: live facts for every stop before Gemma writes a word.
 - **Mastra**: agent, instructions and tools for the pipeline.
-- **DigitalOcean**: App Platform for the app, GPU Droplet for Gemma. <!-- only if deployed there -->
+- **Render**: free web service, auto-deploys on every push.
 - **Sentry**: agent tracing with tool and token spans, screenshots above.
 - **GitHub**: Actions runs the evals on every push.
 - **Entire**: agent sessions behind the build, linked above.
 
 ## Try it
 
-- Live: <!-- DigitalOcean / Render URL -->
+- Live: <!-- https://dharohar-agent.onrender.com -->
 - Code: <!-- https://github.com/Prekshabarjatya/dharohar-agent -->
 - Video: <!-- link -->
 
