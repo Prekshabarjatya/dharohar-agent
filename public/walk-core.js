@@ -66,3 +66,34 @@ export async function nearbyWalk(start, label = 'Walk near you') {
   const waypoints = orderRoute(start, picked.map(p => ({ label: p.title, monument: p.title, lat: p.lat, lng: p.lon, radius: 50 })));
   return { slug: 'custom', name: label, city: '', minutes: Math.max(10, waypoints.length * 6), waypoints };
 }
+
+// "Explore a city": India's major heritage cities, each anchored at its best-known monument.
+// `walk` = a hand-made walk with pre-generated audio (instant); others are built from Wikipedia on tap.
+// ponytail: anchors are approximate (±200 m); nearbyWalk searches 2-10 km around them anyway.
+export const CITIES = [
+  { name: 'Indore', anchor: 'Rajwada', lat: 22.7186, lng: 75.8553, walk: 'old-indore' },
+  { name: 'Ujjain', anchor: 'Mahakaleshwar Temple', lat: 23.1828, lng: 75.7682, walk: 'mahakal-ujjain' },
+  { name: 'Delhi', anchor: 'Red Fort', lat: 28.6562, lng: 77.2410 },
+  { name: 'Agra', anchor: 'Taj Mahal', lat: 27.1751, lng: 78.0421 },
+  { name: 'Jaipur', anchor: 'Hawa Mahal', lat: 26.9239, lng: 75.8267 },
+  { name: 'Varanasi', anchor: 'Dashashwamedh Ghat', lat: 25.3060, lng: 83.0104 },
+  { name: 'Udaipur', anchor: 'City Palace', lat: 24.5764, lng: 73.6835 },
+  { name: 'Hampi', anchor: 'Virupaksha Temple', lat: 15.3350, lng: 76.4600 },
+  { name: 'Mysuru', anchor: 'Mysore Palace', lat: 12.3052, lng: 76.6552 },
+  { name: 'Hyderabad', anchor: 'Charminar', lat: 17.3616, lng: 78.4747 },
+  { name: 'Kolkata', anchor: 'Victoria Memorial', lat: 22.5448, lng: 88.3426 },
+  { name: 'Amritsar', anchor: 'Golden Temple', lat: 31.6200, lng: 74.8765 },
+  { name: 'Lucknow', anchor: 'Bara Imambara', lat: 26.8692, lng: 80.9128 },
+  { name: 'Ahmedabad', anchor: 'Sidi Saiyyed Mosque', lat: 23.0270, lng: 72.5810 },
+  { name: 'Khajuraho', anchor: 'Kandariya Mahadeva Temple', lat: 24.8525, lng: 79.9199 },
+  { name: 'Madurai', anchor: 'Meenakshi Temple', lat: 9.9195, lng: 78.1193 },
+  { name: 'Gwalior', anchor: 'Gwalior Fort', lat: 26.2304, lng: 78.1689 },
+  { name: 'Mandu', anchor: 'Jahaz Mahal', lat: 22.3550, lng: 75.3960 },
+];
+
+export function bearingWord(a, b) { // compass direction from a to b, for "140 m north-east"
+  const r = Math.PI / 180, y = Math.sin((b.lng - a.lng) * r) * Math.cos(b.lat * r);
+  const x = Math.cos(a.lat * r) * Math.sin(b.lat * r) - Math.sin(a.lat * r) * Math.cos(b.lat * r) * Math.cos((b.lng - a.lng) * r);
+  const deg = (Math.atan2(y, x) / r + 360) % 360;
+  return ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(deg / 45) % 8];
+}
