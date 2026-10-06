@@ -1,102 +1,74 @@
 ---
 title: "Dharohar: an open-source AI audio guide that makes you put your phone in your pocket 🌿"
-tags: hf26challenge, devchallenge, opensource, ai
+tags: hacktoberfest, devchallenge, opensource, ai
 ---
 
-## The problem with AI travel apps
+*This is a submission for the [Hacktoberfest Open-Source AI Challenge Week 1: Touch Grass](https://dev.to/challenges/hacktoberfest-week1-2026-10-05)*
 
-You're standing in front of Rajwada, a seven-storey Holkar palace that has watched Indore for almost 300 years, and you're staring at a map on a five-inch screen.
+## What I Built
 
-Most AI travel apps keep you looking down. In India's busy, loud, beautiful old quarters, looking down means missing the heritage you came for.
+You're standing in front of Rajwada, a seven-storey Holkar palace that has watched Indore since 1747, and you're staring at a map on a five-inch screen.
 
-**Dharohar** (धरोहर, "heritage") is an audio-first walking guide. It writes a short spoken tour for each monument on a route, voices it, and then asks you to put your phone away. The screen goes black. You walk. When you reach the next stop, it starts talking.
+**Dharohar** (धरोहर, "heritage") is an audio-first walking guide for India's old city quarters. Pick a walk, and it writes and voices a short spoken tour for every stop. Then a 10-second countdown asks you to put your phone in your pocket, and the screen goes black. You walk. When GPS says you've reached the next monument, the guide starts talking.
 
 The measure of success is how little you look at it.
 
-## See it in action
+It's for anyone who lives in or visits a heritage town: today, *Old Indore: Holkar Heart* (Rajwada → Gopal Mandir → Kanch Mandir → Krishnapura Chhatris) and *Mahakal to Ram Ghat* in Ujjain.
 
-<!-- Embed demo video -->
-<!-- 2-3 photos: you at Rajwada / Mahakal, phone in pocket, headphones on -->
+How it keeps you off the screen:
+- **Black screen, not locked screen.** Phones pause GPS and audio when the screen locks, so Dharohar holds the screen awake (Wake Lock) but paints it pure black. On OLED phones that's almost no battery, and nothing to look at.
+- **GPS geofences** play each stop as you arrive, with a short vibration. No tapping.
+- **Works with no signal.** Every stop is prepared while you still have network, then a service worker caches the app and the audio, so temple courtyards and narrow lanes don't break the walk.
+- **The script itself is screen-free.** The guide is forbidden from saying screen, app, map, click, tap or scroll, and only gives physical cues.
 
-**The flow**
+## Demo
 
-1. Pick a walk: *Old Indore: Holkar Heart* (Rajwada → Gopal Mandir → Kanch Mandir → Krishnapura Chhatris) or *Mahakal to Ram Ghat* in Ujjain. Pick the guide's voice.
-2. For each stop, a Mastra pipeline fetches live facts with **SerpApi**.
-3. **Gemma** writes a spoken script under 100 words, using only physical cues and only the facts it was given.
-4. **ElevenLabs** voices it (multilingual model, four voices to choose from).
-5. A 10-second countdown: *"Put your phone in your pocket."*
-6. **Black screen.** One PLAY AUDIO button. You walk.
-7. GPS geofences play the next stop as you arrive, with a short vibration.
+- Live: https://dharohar-agent.onrender.com (free tier: the first request after idle takes ~1 minute to wake)
+<!-- Embed demo video: landing → countdown → phone into pocket → walking at Rajwada → waypoint vibration -->
+<!-- 2-3 photos at Rajwada / Mahakal, phone in pocket, headphones on -->
 
-## Works with no signal
+## Code
 
-Old city lanes and temple courtyards often have bad network. Dharohar prepares every stop up front while you still have signal, then a service worker caches the app and each stop's MP3. Walk into a dead zone and the guide keeps talking.
+{% github Prekshabarjatya/dharohar-agent %}
 
-## Why the screen is black, not off
+## How I Built It
 
-Phones pause GPS and web audio when the screen locks. So Dharohar keeps the screen awake with the Wake Lock API but paints it pure black. On an OLED phone, black pixels are off, so it costs almost no battery, and there is nothing to look at.
+**Pipeline per stop (a Mastra agent with two tools):** SerpApi search → Gemma writes the script → ElevenLabs speaks it.
 
-## Built with open models at the core
+- **Gemma (open-weight)** writes every script: under 100 words, physical cues only, and only facts from the search results. In production it's `gemma-4-26b-a4b-it` via Google AI Studio; on my laptop the same code runs `gemma3:4b` locally through **Ollama**. One env var switches between them (Groq also supported).
+- **Mastra** holds the agent, its rules and its tools (`search-heritage`, `generate-audio`).
+- **SerpApi** grounds each stop in live search results before Gemma writes a word.
+- **ElevenLabs** `eleven_multilingual_v2` voices it, with four voices to choose from.
+- **Render** runs the agent and the walk UI as one free Node service, auto-deployed from GitHub.
+- **Sentry** traces each tour as an agent run: the search, the Gemma call (with token counts and latency) and the ElevenLabs call, each as a span.
 
-- **Gemma 3 (4B)** through Ollama writes every script. The same code switches to a hosted Gemma through Groq with one env var.
-- **Mastra** holds the agent, its instructions and its two tools (`search-heritage`, `generate-audio`).
-- **SerpApi** grounds every script in live search results, so Gemma does not have to invent history.
-- **ElevenLabs** `eleven_multilingual_v2` gives the guide a voice, and can speak Hindi.
-- **Render** hosts the agent and the walk UI as one free Node web service, auto-deployed from GitHub (`render.yaml`).
-- **Groq** serves Gemma in production (fast, open-weight); locally the same code runs Gemma 3 through Ollama.
-- **Sentry** traces every tour as an agent run: SerpApi call, Gemma call (model, input/output tokens) and ElevenLabs call, each as its own span.
+One honest design note: small Gemma models don't do native tool-calling reliably, so instead of asking the model to pick tools, the pipeline calls them in order. Simpler, and it never "forgets" to search.
 
-One honest note on the architecture: small Gemma models don't do native tool-calling in Ollama, so instead of asking the model to call tools, the pipeline calls them in order (search → write → speak). It's simpler and more reliable than hoping a 4B model picks the right tool.
+**Eval-driven.** The "Touch Grass" rules are tests, not hopes. `npm test` runs 10 evals: word limit, banned screen words, the opening line, audio saved, graceful fallback when ElevenLabs fails, caching (same stop twice = one ElevenLabs call), and geofences that fire inside the radius but not 500 m away and never replay. GitHub Actions runs the fast ones on every push.
 
-## Why open models matter here
+One eval taught me something. The first version passed every format check while Gemma invented "a carved wooden balcony" and "a stone lion" that don't exist: it had copied the example from its own instructions. Format checks can't catch made-up facts. Grounding with SerpApi plus a "use only features named in the facts" rule fixed it.
 
-- **Local history belongs to locals.** With an open-weight model, a community can run the guide on its own hardware and, later, add its own oral histories to the context without asking a vendor's permission.
-- **Cost control.** Script generation runs on a model we host, and scripts and audio are cached per monument and voice, so the hundredth visitor to Rajwada costs nothing extra.
-- **No lock-in.** Gemma on a laptop, on a GPU box or through any provider: it's the same code.
+**Caching:** each stop's script is cached, and its audio is cached per voice, so the second visitor to Rajwada costs no model call and no ElevenLabs credits.
 
-## Eval-driven development
+I built this with an AI coding agent (Claude Code): I set the concept, the rules and the evals; the agent wrote most of the code, ran the tests and fixed failures; I reviewed every change.
 
-The "Touch Grass" rules are tests, not hopes. `npm test` runs 10 evals:
+## Why Does Open Innovation Matter?
 
-- Every script is under 100 words, starts with *"Namaste. Put your phone in your pocket"*, and never says screen, app, map, click, tap or scroll (whole words, so "approach" is fine).
-- A real MP3 is written for each stop, and its duration is sensible.
-- If ElevenLabs fails, the walk still works: text comes back with a warning and the phone's own voice reads it.
-- The same monument twice costs one ElevenLabs call. A new voice reuses the script.
-- Geofences fire inside the radius, not 500 m away, and never replay a stop.
+- **Local history belongs to locals.** With an open-weight model, a temple trust, a heritage walk group or a college club can run the guide on its own hardware. The same code ran Gemma on my laptop with no API at all.
+- **No lock-in.** Laptop, GPU box, Google AI Studio or Groq: same code, one env var. If a provider changes terms, the walk keeps working. (This happened during the build: an older Gemma version was retired on one provider, and switching took one line.)
+- **Open data, open code.** Every tour is grounded in public search results, and the whole project is MIT-style open on GitHub so anyone can add a walk for their own town.
+- **What's next:** a "local story" box per stop, so residents can add the oral history that never made it to Wikipedia, read aloud as part of the tour.
 
-The ElevenLabs tests use a fake ElevenLabs, so running them costs no credits. GitHub Actions runs the typecheck and geofence evals on every push, and the full Gemma evals (Ollama installed in CI) on demand.
+## My Agent Session
 
-One eval taught me something: the first version passed every format check while Gemma happily invented "a carved wooden balcony" and "a stone lion" that don't exist. It had copied the example from its own instructions. Format evals don't catch made-up facts. Grounding with SerpApi plus a "use only features named in the facts" rule did.
+<!-- DevRelay agent_session embed -->
 
-## Watching the agent with Sentry
+## Prize Categories
 
-<!-- screenshot: Sentry AI Agents view / trace waterfall for one tour -->
-
-Each tour is one `invoke_agent dharohar-guide` trace with three child spans: `execute_tool search-heritage`, `chat gemma3:4b` (with token counts), and `execute_tool generate-audio`. The first trace showed the problem straight away: <!-- fill in what you saw, e.g. Gemma on a laptop took ~90 s per stop while SerpApi and ElevenLabs took ~1-3 s, which is why scripts and audio are now cached and production uses Groq -->.
-
-## How I built it
-
-I built Dharohar with an AI coding agent (Claude Code). I wrote the concept, the "Touch Grass" rules and the evals I wanted; the agent wrote most of the code, ran the tests and fixed failures, and I reviewed each change. The agent sessions are shared here: <!-- Entire link -->
-
-## Sponsor tracks
-
-- **Gemma**: writes every tour script, grounded and length-capped.
-- **ElevenLabs**: the guide's voice, four selectable voices, cached per stop.
-- **SerpApi**: live facts for every stop before Gemma writes a word.
-- **Mastra**: agent, instructions and tools for the pipeline.
-- **Render**: free web service, auto-deploys on every push.
-- **Sentry**: agent tracing with tool and token spans, screenshots above.
-- **GitHub**: Actions runs the evals on every push.
-- **Entire**: agent sessions behind the build, linked above.
-
-## Try it
-
-- Live: <!-- https://dharohar-agent.onrender.com -->
-- Code: <!-- https://github.com/Prekshabarjatya/dharohar-agent -->
-- Video: <!-- link -->
-
-## What's next
-
-- Hindi scripts end to end (the voice already speaks Hindi).
-- A "local story" box per stop, stored in MongoDB Atlas, read aloud as part of the tour.
-- Walks for more Indore and Ujjain neighbourhoods, contributed by people who live there.
+- **Best Use of Gemma**: Gemma writes every grounded, length-capped script (Gemma 4 in production, Gemma 3 locally).
+- **Best Use of Render**: the whole app runs as one free Render web service from a `render.yaml` blueprint.
+- **Best Use of ElevenLabs**: the guide's voice, four selectable voices, cached per stop.
+- **Best Use of SerpApi**: live facts for every stop before Gemma writes.
+- **Best Use of Mastra**: agent, rules and tools for the pipeline.
+- **Best Use of Sentry Agent Tracing**: tool and LLM spans with tokens and latency (trace screenshot above).
+- **Best Use of GitHub Copilot**: GitHub Actions runs the evals on every push.
