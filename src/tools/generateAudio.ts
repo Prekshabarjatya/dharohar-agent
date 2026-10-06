@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { LANGUAGES, langOf } from '../languages';
 
 export const AUDIO_DIR = join(process.cwd(), 'public', 'audio');
 // ElevenLabs premade voices offered in the UI. Allowlist: the client can only pick one of these.
@@ -20,9 +21,10 @@ export type AudioResult = { audioUrl: string | null; duration: number; warning?:
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'stop';
 
-export async function textToAudio(text: string, monument: string, voice: string = 'rachel'): Promise<AudioResult> {
+export async function textToAudio(text: string, monument: string, voice: string = 'rachel', language = 'en'): Promise<AudioResult> {
+  const lang = langOf(language);
   if (!VOICES[voice]) voice = 'rachel';
-  const key = `${voice}|${monument}`;
+  const key = `${voice}|${lang}|${monument}`;
   const duration = Math.ceil(text.split(/\s+/).length / 2.5); // ~150 words/min, seconds
   const cached = audioCache.get(key);
   if (cached) return { audioUrl: cached, duration };
@@ -31,11 +33,11 @@ export async function textToAudio(text: string, monument: string, voice: string 
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICES[voice]}`, {
       method: 'POST',
       headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-      body: JSON.stringify({ text, model_id: 'eleven_multilingual_v2' }),
+      body: JSON.stringify({ text, model_id: LANGUAGES[lang].tts, ...(lang === 'en' ? {} : { language_code: lang }) }),
     });
     if (!res.ok) throw new Error(`ElevenLabs HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
     mkdirSync(AUDIO_DIR, { recursive: true });
-    const fileName = `${slug(monument)}-${voice}_${Date.now()}.mp3`;
+    const fileName = `${slug(monument)}-${voice}${lang === 'en' ? '' : '-' + lang}_${Date.now()}.mp3`;
     writeFileSync(join(AUDIO_DIR, fileName), Buffer.from(await res.arrayBuffer()));
     const audioUrl = `/audio/${fileName}`;
     audioCache.set(key, audioUrl);
@@ -49,6 +51,6 @@ export async function textToAudio(text: string, monument: string, voice: string 
 export const generateAudio = createTool({
   id: 'generate-audio',
   description: 'Convert a walking tour script to spoken MP3 audio with ElevenLabs.',
-  inputSchema: z.object({ text: z.string(), monument: z.string(), voice: z.enum(['rachel', 'adam', 'domi', 'antoni']).default('rachel') }),
-  execute: async ({ text, monument, voice }) => textToAudio(text, monument, voice),
+  inputSchema: z.object({ text: z.string(), monument: z.string(), voice: z.enum(['rachel', 'adam', 'domi', 'antoni']).default('rachel'), lang: z.string().default('en') }),
+  execute: async ({ text, monument, voice, lang }) => textToAudio(text, monument, voice, lang),
 });

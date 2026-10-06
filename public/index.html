@@ -51,6 +51,14 @@ h1{font:700 2.4rem Georgia,serif;color:var(--acc)}
       <option value="antoni">Antoni: warm, male</option>
     </select>
   </label>
+  <label class="voice">Language
+    <select id="lang">
+      <option value="en">English</option><option value="hi">हिन्दी Hindi</option><option value="mr">मराठी Marathi</option>
+      <option value="gu">ગુજરાતી Gujarati</option><option value="bn">বাংলা Bengali</option><option value="pa">ਪੰਜਾਬੀ Punjabi</option>
+      <option value="ta">தமிழ் Tamil</option><option value="te">తెలుగు Telugu</option><option value="kn">ಕನ್ನಡ Kannada</option>
+      <option value="ml">മലയാളം Malayalam</option>
+    </select>
+  </label>
   <form id="any" class="any">
     <input id="q" placeholder="Any place, e.g. Mandu or Lal Bagh Indore" aria-label="Place name" required>
     <button>Walk here</button>
@@ -74,6 +82,8 @@ const $ = id => document.getElementById(id);
 const audio = new Audio();
 try { $('voice').value = localStorage.dh_voice || 'rachel' } catch {}
 $('voice').onchange = () => { try { localStorage.dh_voice = $('voice').value } catch {} };
+try { $('lang').value = localStorage.dh_lang || 'en' } catch {}
+$('lang').onchange = () => { try { localStorage.dh_lang = $('lang').value } catch {} };
 let custom = null;
 let tours = [], played = new Set(), watchId = null, wake = null, queue = [];
 
@@ -101,7 +111,7 @@ async function startWalk(walk) {
   $('play').style.display = 'none';
   for (const [i, w] of walk.waypoints.entries()) { // sequential: one Gemma at a time
     $('msg').textContent = `Dharohar is unpacking 500 years of history… (${i + 1}/${walk.waypoints.length})`;
-    const r = await fetch('/script', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monument: w.monument, voice: $('voice').value }) }).catch(() => null);
+    const r = await fetch('/script', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monument: w.monument, voice: $('voice').value, lang: $('lang').value }) }).catch(() => null);
     tours.push(r?.ok ? await r.json() : { script: `${w.label}.`, audioUrl: null });
   }
   tours.forEach(t => t.audioUrl && fetch(t.audioUrl).catch(() => {})); // warm the offline cache now, while there is signal
@@ -130,7 +140,7 @@ function playStop(walk, i) {
 }
 audio.onended = () => { queue.shift(); queue[0]?.(); };
 function speak(text) { // ElevenLabs failed -> phone voice
-  const u = new SpeechSynthesisUtterance(text); u.lang = 'en-IN'; u.onend = audio.onended;
+  const u = new SpeechSynthesisUtterance(text); u.lang = ($('lang').value || 'en') + '-IN'; u.onend = audio.onended;
   speechSynthesis.speak(u);
 }
 
@@ -146,7 +156,7 @@ function track(walk) {
   watchId = navigator.geolocation.watchPosition(p => {
     const i = reachedWaypoint({ lat: p.coords.latitude, lng: p.coords.longitude }, walk.waypoints, played);
     if (i >= 0) playStop(walk, i);
-  }, () => $('msg').textContent = 'Please enable location to unlock the walk. (Double-tap to hear the next stop.)',
+  }, e => { if (e.code === 1) $('msg').textContent = 'Please enable location to unlock the walk. (Double-tap to hear the next stop.)'; }, // only a real denial; GPS timeouts are normal while walking
   { enableHighAccuracy: true, maximumAge: 5000 });
 }
 

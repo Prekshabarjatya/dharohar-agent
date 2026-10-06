@@ -1,10 +1,11 @@
-// POST /script {monument, voice?} -> {script, audioUrl, duration, warning?}; GET / serves the walk UI from public/. Plain node:http, runs on Render or a DigitalOcean Droplet as-is.
+// POST /script {monument, voice?, lang?} -> {script, audioUrl, duration, warning?}; GET / serves the walk UI from public/. Plain node:http, runs on Render or a DigitalOcean Droplet as-is.
 import './instrument';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join, normalize, extname, sep } from 'node:path';
 import { generateWalkingTour, MODEL_INFO } from './agent';
 import { VOICES } from './tools/generateAudio';
+import { LANGUAGES } from './languages';
 import * as Sentry from '@sentry/node';
 
 const PUBLIC = join(process.cwd(), 'public');
@@ -26,12 +27,13 @@ createServer(async (req, res) => {
 
   let body = '';
   for await (const chunk of req) { body += chunk; if (body.length > 2000) return res.writeHead(413).end(); }
-  const { monument, voice = 'rachel' } = (() => { try { return JSON.parse(body) } catch { return {} } })();
+  const { monument, voice = 'rachel', lang = 'en' } = (() => { try { return JSON.parse(body) } catch { return {} } })();
   if (typeof monument !== 'string' || !monument.trim() || monument.length > 200) return res.writeHead(400).end('bad monument');
   if (!(voice in VOICES)) return res.writeHead(400).end('bad voice');
+  if (!(lang in LANGUAGES)) return res.writeHead(400).end('bad lang');
 
   try {
-    const tour = await generateWalkingTour(monument.trim(), voice);
+    const tour = await generateWalkingTour(monument.trim(), voice, lang);
     res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(tour));
   } catch (e) {
     console.error(e);

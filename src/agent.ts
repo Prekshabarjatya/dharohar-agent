@@ -8,6 +8,7 @@ import { z } from 'zod';
 import 'dotenv/config';
 import * as Sentry from '@sentry/node';
 import { generateAudio, textToAudio, type AudioResult } from './tools/generateAudio';
+import { LANGUAGES, langOf } from './languages';
 
 // 1. SerpApi tool: live facts about a monument
 export const searchHeritage = createTool({
@@ -44,7 +45,7 @@ RULES:
 1. Write one spoken script under 90 words. Plain sentences only, no headings, no lists, no markdown.
 2. Use ONLY physical, real-world cues about features named in the facts (gates, walls, domes, steps). Never invent features that are not in the facts.
 3. NEVER mention screens, maps, clicking, apps, or anything to look at on a device.
-4. Start exactly with: "Namaste. Put your phone in your pocket, and let's walk."
+4. Start exactly with the opening line given in the request, word for word.
 5. Use only the facts you are given. Do not invent dates or names.`,
   model,
 });
@@ -60,7 +61,7 @@ export type Tour = AudioResult & { script: string };
 // Sentry agent tracing: one invoke_agent span per tour, child spans per tool call and LLM call
 // (gen_ai.* ops/attributes, so they show up in Sentry's AI Agents view). No-ops when SENTRY_DSN is unset.
 
-export async function generateScript(monument: string) {
+export async function generateScript(monument: string, lang = 'en') {
   const facts = await Sentry.startSpan(
     { op: 'gen_ai.execute_tool', name: 'execute_tool search-heritage', attributes: { 'gen_ai.tool.name': 'search-heritage', monument } },
     async (span) => {
@@ -73,7 +74,7 @@ export async function generateScript(monument: string) {
     async (span) => {
       const t0 = Date.now();
       const res = await mastra.getAgent('dharoharGuide').generate(
-        `Monument: ${monument}\n\nFacts:\n${facts}\n\nWrite the walking tour script now.`,
+        `Monument: ${monument}\n\nFacts:\n${facts}\n\nOpening line: ${LANGUAGES[lang].opening}\n\nWrite the walking tour script now, entirely in ${LANGUAGES[lang].name}${lang === 'en' ? '' : ' (native script, simple spoken words; keep monument names as locals say them)'}.`,
       );
       console.log(`llm ${MODEL_INFO} ${Date.now() - t0}ms`);
       span.setAttribute('llm.ms', Date.now() - t0);
@@ -84,16 +85,18 @@ export async function generateScript(monument: string) {
 }
 
 const scriptCache = new Map<string, string>(); // ponytail: per-process, cleared on restart
-export function generateWalkingTour(monument: string, voice = 'rachel'): Promise<Tour> {
+export function generateWalkingTour(monument: string, voice = 'rachel', language = 'en'): Promise<Tour> {
+  const lang = langOf(language);
   return Sentry.startSpan(
-    { op: 'gen_ai.invoke_agent', name: 'invoke_agent dharohar-guide', attributes: { 'gen_ai.agent.name': 'dharohar-guide', monument, voice } },
+    { op: 'gen_ai.invoke_agent', name: 'invoke_agent dharohar-guide', attributes: { 'gen_ai.agent.name': 'dharohar-guide', monument, voice, lang } },
     async (span) => {
-      let script = scriptCache.get(monument);
+      const key = `${lang}|${monument}`;
+      let script = scriptCache.get(key);
       span.setAttribute('cache.hit', !!script);
-      if (!script) scriptCache.set(monument, script = await generateScript(monument));
+      if (!script) scriptCache.set(key, script = await generateScript(monument, lang));
       const audio = await Sentry.startSpan(
         { op: 'gen_ai.execute_tool', name: 'execute_tool generate-audio', attributes: { 'gen_ai.tool.name': 'generate-audio', voice } },
-        () => textToAudio(script!, monument, voice)); // audio cached per voice inside
+        () => textToAudio(script!, monument, voice, lang)); // audio cached per voice inside
       if (!audio.audioUrl) span.setAttribute('audio.warning', audio.warning || '');
       return { script, ...audio };
     });
