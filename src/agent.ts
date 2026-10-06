@@ -71,9 +71,12 @@ export async function generateScript(monument: string) {
   return Sentry.startSpan(
     { op: 'gen_ai.chat', name: `chat ${MODEL_NAME}`, attributes: { 'gen_ai.request.model': MODEL_NAME, 'gen_ai.system': PROVIDER } },
     async (span) => {
+      const t0 = Date.now();
       const res = await mastra.getAgent('dharoharGuide').generate(
         `Monument: ${monument}\n\nFacts:\n${facts}\n\nWrite the walking tour script now.`,
       );
+      console.log(`llm ${MODEL_INFO} ${Date.now() - t0}ms`);
+      span.setAttribute('llm.ms', Date.now() - t0);
       span.setAttribute('gen_ai.usage.input_tokens', res.usage?.inputTokens ?? 0);
       span.setAttribute('gen_ai.usage.output_tokens', res.usage?.outputTokens ?? 0);
       return res.text.trim();

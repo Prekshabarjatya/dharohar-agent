@@ -33,7 +33,7 @@ export async function textToAudio(text: string, monument: string, voice: string 
       headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
       body: JSON.stringify({ text, model_id: 'eleven_multilingual_v2' }),
     });
-    if (!res.ok) throw new Error(`ElevenLabs HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`ElevenLabs HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
     mkdirSync(AUDIO_DIR, { recursive: true });
     const fileName = `${slug(monument)}-${voice}_${Date.now()}.mp3`;
     writeFileSync(join(AUDIO_DIR, fileName), Buffer.from(await res.arrayBuffer()));
