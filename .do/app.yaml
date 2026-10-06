@@ -24,4 +24,4 @@ services:
       - key: SENTRY_DSN
         type: SECRET
       - key: ALLOWED_ORIGINS
-        value: https://dharohar-a03.pages.dev
+        value: http://localhost:8000

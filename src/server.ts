@@ -9,7 +9,7 @@ import * as Sentry from '@sentry/node';
 
 const PUBLIC = join(process.cwd(), 'public');
 const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/manifest+json', '.mp3': 'audio/mpeg', '.svg': 'image/svg+xml' };
-const ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://dharohar-a03.pages.dev,http://localhost:8000').split(',');
+const ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:8000').split(',');
 
 createServer(async (req, res) => {
   const origin = req.headers.origin || '';
