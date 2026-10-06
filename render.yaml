@@ -17,3 +17,5 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: GOOGLE_GENERATIVE_AI_API_KEY
+        sync: false

@@ -3,6 +3,7 @@ import { Mastra } from '@mastra/core';
 import { createTool } from '@mastra/core/tools';
 import { createOllama } from 'ollama-ai-provider-v2';
 import { createGroq } from '@ai-sdk/groq';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import 'dotenv/config';
 import * as Sentry from '@sentry/node';
@@ -25,10 +26,14 @@ export const searchHeritage = createTool({
   },
 });
 
-// 2. Gemma: Groq if GROQ_API_KEY is set, else local Ollama
-const model = process.env.GROQ_API_KEY
-  ? createGroq()(process.env.GROQ_MODEL || 'gemma2-9b-it')
-  : createOllama({ baseURL: process.env.OLLAMA_URL || 'http://localhost:11434/api' })(process.env.OLLAMA_MODEL || 'gemma3:4b');
+// 2. Gemma: Google AI Studio > Groq > local Ollama, whichever key is set
+const MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_API_KEY ? process.env.GOOGLE_MODEL || 'gemma-3-27b-it'
+  : process.env.GROQ_API_KEY ? process.env.GROQ_MODEL || 'gemma2-9b-it'
+  : process.env.OLLAMA_MODEL || 'gemma3:4b';
+const PROVIDER = process.env.GOOGLE_GENERATIVE_AI_API_KEY ? 'google' : process.env.GROQ_API_KEY ? 'groq' : 'ollama';
+const model = PROVIDER === 'google' ? createGoogleGenerativeAI()(MODEL_NAME)
+  : PROVIDER === 'groq' ? createGroq()(MODEL_NAME)
+  : createOllama({ baseURL: process.env.OLLAMA_URL || 'http://localhost:11434/api' })(MODEL_NAME);
 
 export const dharoharGuide = new Agent({
   id: 'dharohar-guide',
@@ -53,7 +58,6 @@ export type Tour = AudioResult & { script: string };
 
 // Sentry agent tracing: one invoke_agent span per tour, child spans per tool call and LLM call
 // (gen_ai.* ops/attributes, so they show up in Sentry's AI Agents view). No-ops when SENTRY_DSN is unset.
-const MODEL_NAME = process.env.GROQ_API_KEY ? process.env.GROQ_MODEL || 'gemma2-9b-it' : process.env.OLLAMA_MODEL || 'gemma3:4b';
 
 export async function generateScript(monument: string) {
   const facts = await Sentry.startSpan(
@@ -64,7 +68,7 @@ export async function generateScript(monument: string) {
       return f;
     });
   return Sentry.startSpan(
-    { op: 'gen_ai.chat', name: `chat ${MODEL_NAME}`, attributes: { 'gen_ai.request.model': MODEL_NAME, 'gen_ai.system': process.env.GROQ_API_KEY ? 'groq' : 'ollama' } },
+    { op: 'gen_ai.chat', name: `chat ${MODEL_NAME}`, attributes: { 'gen_ai.request.model': MODEL_NAME, 'gen_ai.system': PROVIDER } },
     async (span) => {
       const res = await mastra.getAgent('dharoharGuide').generate(
         `Monument: ${monument}\n\nFacts:\n${facts}\n\nWrite the walking tour script now.`,
