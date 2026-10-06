@@ -32,3 +32,36 @@ export function dist(a, b) { // metres, haversine
 export function reachedWaypoint(pos, waypoints, played) {
   return waypoints.findIndex((w, i) => !played.has(i) && dist(pos, w) <= w.radius);
 }
+
+// Any-place walks: nearest heritage pages on Wikipedia around a point, ordered as a walking route.
+const HERITAGE = /temple|mandir|fort|qila|palace|mahal|stepwell|vav|baori|baoli|masjid|mosque|church|cathedral|gurudwara|tomb|maqbara|chhatri|gate|darwaza|haveli|museum|ghat|stupa|cave|monument|rajwada|jyotirlinga|observatory/i;
+
+export function orderRoute(start, pts) { // ponytail: greedy nearest-neighbour, fine for <=6 stops
+  const out = [], left = [...pts];
+  let p = start;
+  while (left.length) { left.sort((a, b) => dist(p, a) - dist(p, b)); p = left.shift(); out.push(p); }
+  return out;
+}
+
+const wiki = params => fetch('https://en.wikipedia.org/w/api.php?' + new URLSearchParams({ format: 'json', origin: '*', ...params })).then(r => r.json());
+
+export async function placeToPoint(q) {
+  const s = await wiki({ action: 'query', generator: 'search', gsrsearch: q, gsrlimit: '8', prop: 'coordinates' });
+  const p = Object.values(s.query?.pages || {}).sort((a, b) => a.index - b.index).find(p => p.coordinates); // best-ranked hit that has a location
+  if (!p?.coordinates) throw new Error(`Couldn't find "${q}". Try a well-known landmark nearby.`);
+  return { lat: p.coordinates[0].lat, lng: p.coordinates[0].lon, name: p.title };
+}
+
+export async function nearbyWalk(start, label = 'Walk near you') {
+  let picked = [];
+  for (const radius of ['2000', '10000']) { // walkable first; widen for spread-out sites like Mandu
+    const g = await wiki({ action: 'query', list: 'geosearch', gscoord: `${start.lat}|${start.lng}`, gsradius: radius, gslimit: '100' });
+    const all = g.query?.geosearch || [];
+    const heritage = all.filter(p => HERITAGE.test(p.title));
+    picked = (heritage.length >= 3 ? heritage : all).slice(0, 5);
+    if (picked.length >= 3) break;
+  }
+  if (!picked.length) throw new Error('No heritage places found nearby.');
+  const waypoints = orderRoute(start, picked.map(p => ({ label: p.title, monument: p.title, lat: p.lat, lng: p.lon, radius: 50 })));
+  return { slug: 'custom', name: label, city: '', minutes: Math.max(10, waypoints.length * 6), waypoints };
+}

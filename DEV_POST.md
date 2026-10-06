@@ -13,7 +13,7 @@ You're standing in front of Rajwada, a seven-storey Holkar palace that has watch
 
 The measure of success is how little you look at it.
 
-It's for anyone who lives in or visits a heritage town: today, *Old Indore: Holkar Heart* (Rajwada → Gopal Mandir → Kanch Mandir → Krishnapura Chhatris) and *Mahakal to Ram Ghat* in Ujjain.
+It's for anyone who lives in or visits a heritage town. Type any place (Gwalior Fort, Mandu…) or tap **Walk where I am**, and Dharohar builds a walk from the nearest heritage sites on Wikipedia. There are also two hand-made walks: *Old Indore: Holkar Heart* (Rajwada → Gopal Mandir → Kanch Mandir → Krishnapura Chhatris) and *Mahakal to Ram Ghat* in Ujjain.
 
 How it keeps you off the screen:
 - **Black screen, not locked screen.** Phones pause GPS and audio when the screen locks, so Dharohar holds the screen awake (Wake Lock) but paints it pure black. On OLED phones that's almost no battery, and nothing to look at.

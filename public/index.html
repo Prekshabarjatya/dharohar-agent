@@ -19,6 +19,13 @@ h1{font:700 2.4rem Georgia,serif;color:var(--acc)}
 .walk p{color:var(--mut);font-size:.95rem}
 .voice{display:flex;flex-direction:column;gap:6px;color:var(--mut);font-size:.95rem;margin-bottom:8px}
 .voice select{font:inherit;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);min-height:48px}
+.any{display:flex;gap:8px;margin:8px 0}
+.any input{flex:1;min-width:0;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);min-height:48px}
+.any button,.near{font:600 1rem system-ui;padding:12px 16px;border-radius:12px;border:0;background:var(--acc);color:#fff;min-height:48px;cursor:pointer}
+.near{width:100%;background:transparent;color:var(--acc);border:1px solid var(--acc)}
+.err{color:var(--acc);min-height:1.4em;font-size:.95rem;margin-top:6px}
+.or{color:var(--mut);font-size:.95rem;margin-top:12px}
+@media (prefers-color-scheme:dark){.any button{color:#1b140e}}
 .walk:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 #stage{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;padding:24px;text-align:center;background:var(--bg)}
 #stage.black{background:#000;color:#fff}
@@ -44,6 +51,13 @@ h1{font:700 2.4rem Georgia,serif;color:var(--acc)}
       <option value="antoni">Antoni: warm, male</option>
     </select>
   </label>
+  <form id="any" class="any">
+    <input id="q" placeholder="Any place, e.g. Mandu or Lal Bagh Indore" aria-label="Place name" required>
+    <button>Walk here</button>
+  </form>
+  <button id="near" class="near" type="button">📍 Walk where I am</button>
+  <p id="err" class="err" role="alert"></p>
+  <p class="or">or a ready-made walk:</p>
   <div id="walks"></div>
 </main>
 
@@ -55,15 +69,25 @@ h1{font:700 2.4rem Georgia,serif;color:var(--acc)}
 </div>
 
 <script type="module">
-import { WALKS, reachedWaypoint } from '/walk-core.js';
+import { WALKS, reachedWaypoint, placeToPoint, nearbyWalk } from '/walk-core.js';
 const $ = id => document.getElementById(id);
 const audio = new Audio();
 try { $('voice').value = localStorage.dh_voice || 'rachel' } catch {}
 $('voice').onchange = () => { try { localStorage.dh_voice = $('voice').value } catch {} };
+let custom = null;
 let tours = [], played = new Set(), watchId = null, wake = null, queue = [];
 
 $('walks').innerHTML = WALKS.map(w => `<button class="walk" data-slug="${w.slug}">
   <h2>${w.name}</h2><p>${w.city} · ${w.waypoints.length} stops · about ${w.minutes} min walk</p></button>`).join('');
+async function goCustom(p) {
+  $('err').textContent = 'Finding heritage places nearby…';
+  try { custom = await nearbyWalk(...await p); $('err').textContent = ''; location.hash = '/walk/custom'; if (location.hash === '#/walk/custom') route(); }
+  catch (e) { $('err').textContent = e.message; }
+}
+$('any').onsubmit = e => { e.preventDefault(); goCustom(placeToPoint($('q').value).then(pt => [pt, pt.name])); };
+$('near').onclick = () => goCustom(new Promise((ok, no) => navigator.geolocation.getCurrentPosition(
+  p => ok([{ lat: p.coords.latitude, lng: p.coords.longitude }, 'Walk where I am']),
+  () => no(new Error('Location is blocked. Type a place instead.')), { enableHighAccuracy: true, timeout: 15000 })));
 document.querySelectorAll('.walk').forEach(b => b.onclick = () => location.hash = '/walk/' + b.dataset.slug);
 
 function show(mode) {
@@ -135,7 +159,7 @@ $('exit').onclick = () => { location.hash = ''; };
 
 function route() {
   stop();
-  const walk = WALKS.find(w => location.hash === '#/walk/' + w.slug);
+  const walk = location.hash === '#/walk/custom' ? custom : WALKS.find(w => location.hash === '#/walk/' + w.slug);
   walk ? startWalk(walk) : show('home');
 }
 addEventListener('hashchange', route);
