@@ -16,6 +16,7 @@ What keeps you off the screen:
 - **GPS does the tapping.** Each stop has a geofence. Walk into it, feel a short vibration, hear the story. A stop never repeats.
 - **Dead zones are fine.** Every stop is written and voiced before you leave, while you still have signal. A service worker caches the app and every MP3, so a temple courtyard with no network doesn't stop the walk.
 - **The guide is forbidden from mentioning screens.** No "on your map", no "tap here". Only things you can see with your own eyes.
+- **Your language.** The guide speaks ten Indian languages, from Hindi and Marathi to Tamil and Malayalam.
 
 ## Demo
 
@@ -35,33 +36,59 @@ You can also type any place. Gwalior Fort gives Chaturbhuj Temple, Gujari Mahal,
 
 ## How I Built It
 
-Each stop goes through a small pipeline, held together by a **Mastra** agent with two tools:
+The finished pipeline is small. For each stop, a **Mastra** agent with two tools:
 
 1. **SerpApi** searches the web for the monument, so the guide starts from real facts.
 2. **Gemma** writes a script of under 100 words: physical directions only, and only facts from the search.
-3. **ElevenLabs** (`eleven_multilingual_v2`) voices it. You can choose from four voices.
+3. **ElevenLabs** voices it, in the walker's language and one of four voices.
 
-Then the walk page takes over: ordering stops into a route, geofences, wake lock and the offline cache.
+Then the walk page takes over: ordering stops into a route, geofences, wake lock and the offline cache. It got there in six phases.
 
-**Gemma, two ways.** On my laptop Gemma 3 4B runs locally through **Ollama**, with no API at all. In production the same code calls `gemma-4-26b-a4b-it` on Google AI Studio. One environment variable switches between them, and Groq works too. A Gemma 4 script reads noticeably better than the 4B one. Kanch Mandir's script, for example, names Seth Hukumchand, gives the year it was built (1903) and points out the glass murals.
+### Phase 1: Prove the idea
 
-**Why not let the model call the tools?** Small Gemma models don't do native tool calling reliably. So the pipeline calls the tools in a fixed order instead of hoping the model remembers to search. That's simpler, and it never skips the facts.
+One HTML file. Wikipedia's geosearch found monuments near a point, and the browser's built-in speech read their summaries aloud. It was rough, but it answered the only question that mattered: does listening while you walk feel better than reading? It did.
 
-**Evals as the rules.** The "touch grass" rules are tests, not hopes. `npm test` runs 10 evals:
+### Phase 2: A real guide, with rules
 
-- every script is under 100 words, opens with *"Namaste. Put your phone in your pocket"*, and never says screen, app, map, click, tap or scroll (whole words, so "approach" passes)
-- a real MP3 is written for each stop
-- if ElevenLabs fails, the walk still works: the script comes back with a warning and the phone's own voice reads it
-- the same stop twice costs one ElevenLabs call, and switching voice reuses the script
-- geofences fire inside the radius, not 500 m away, and never replay a stop
+I moved to a **Mastra** agent: SerpApi for facts, **Gemma** for the script. On my laptop Gemma 3 4B runs locally through **Ollama**, with no API at all.
 
-GitHub Actions runs the fast evals on every push.
+Small Gemma models don't do native tool calling reliably, so the pipeline calls the tools in a fixed order instead of hoping the model remembers to search. That's simpler, and it never skips the facts.
+
+This is also where I wrote the "touch grass" rules as tests: under 100 words, open with *"Namaste. Put your phone in your pocket"*, and never say screen, app, map, click, tap or scroll (whole words, so "approach" passes).
 
 **The eval that lied to me.** My first version passed every check while Gemma described "a carved wooden balcony" and "a stone lion" at Rajwada. Neither exists. It had copied the example sentence from its own instructions. Format checks can't catch invented facts. What fixed it was grounding every script in search results, plus a rule to mention only features named in those facts.
 
-**Caching.** Gemma on the free tier takes about a minute per new stop (the search itself takes 1.4 seconds). So each stop's script is cached, and its audio is cached per voice. The second person to walk past Rajwada gets it in under a second, and costs no model call and no ElevenLabs credits.
+### Phase 3: Give it a voice
 
-**Agent tracing.** The pipeline is instrumented for Sentry: each tour is one agent run, with separate spans for the search, the Gemma call (model, tokens, latency) and the voice. I found the one-minute Gemma step by timing each part from outside; with tracing switched on, that breakdown shows up per request.
+**ElevenLabs** voices every script. Two things made it practical:
+
+- **Caching.** Each stop's script is cached, and its audio is cached per voice. The second person to walk past Rajwada gets it in under a second, and costs no model call and no ElevenLabs credits.
+- **Graceful failure.** If ElevenLabs is down or out of credits, the script still comes back with a warning, and the phone's own voice reads it. The walk never stops.
+
+The evals here use a fake ElevenLabs, so running them costs nothing.
+
+### Phase 4: Make the screen disappear
+
+This is the "touch grass" part, and the hardest UX problem. Phones pause GPS and web audio when the screen locks, which kills a walking guide. So Dharohar keeps the screen awake with the **Wake Lock API** and paints it pure black. On OLED, black pixels are off: almost no battery, and nothing to look at.
+
+On top of that: a **geofence** per stop that plays its story when you arrive (with a short vibration, and never twice), and a **service worker** that caches the app and every MP3 before you leave, so temple courtyards with no signal don't break the walk.
+
+### Phase 5: Ship it, then debug it in public
+
+The agent and the walk page run as one free **Render** web service. Going live taught me more than building did:
+
+- The Gemma version I first deployed had been retired on Google AI Studio. Because the model is open-weight and the code isn't tied to one vendor, I listed what was available and switched to `gemma-4-26b-a4b-it` in one line. Its scripts are noticeably better: Kanch Mandir's names Seth Hukumchand, gives 1903 and points out the glass murals.
+- Timing each part showed the search takes 1.4 seconds and Gemma on the free tier about a minute per new stop. That's why caching matters so much.
+- The pipeline is instrumented for **Sentry** agent tracing: each tour is one agent run, with spans for the search, the Gemma call (model, tokens, latency) and the voice.
+- GitHub Actions runs the fast evals on every push.
+
+### Phase 6: Anywhere, in any language
+
+The first walks were hand-made for Indore and Ujjain. Now you can tap **Walk where I am** or type any place, and Dharohar builds a walk from the nearest heritage on Wikipedia's open geodata. It looks within 2 km first and widens to 10 km if needed, so a cricket stadium or a spread-out site like Mandu still gets a real walk.
+
+And the guide speaks **ten Indian languages**: English, Hindi, Marathi, Gujarati, Bengali, Punjabi, Tamil, Telugu, Kannada and Malayalam. Gemma writes natively in each one. ElevenLabs' multilingual model covers Hindi and Tamil, and the others go to `eleven_v3`. I checked every language against the API before shipping.
+
+All of it is held to **13 evals** (`npm test`).
 
 I built this with an AI coding agent (Claude Code). I set the idea, the rules and the evals. The agent wrote most of the code, ran the tests and fixed what failed, and I reviewed every change. The session is below.
 
@@ -83,7 +110,7 @@ I built this with an AI coding agent (Claude Code). I set the idea, the rules an
 
 - **Best Use of Gemma**: Gemma writes every grounded, length-capped script (Gemma 4 in production, Gemma 3 locally through Ollama).
 - **Best Use of Render**: the agent and the walk UI run as one free Render web service, deployed from a `render.yaml` blueprint.
-- **Best Use of ElevenLabs**: the guide's voice, with four voices to choose from and audio cached per stop.
+- **Best Use of ElevenLabs**: the guide's voice in ten Indian languages, four voices, audio cached per stop.
 - **Best Use of SerpApi**: live facts for every stop before Gemma writes a word.
 - **Best Use of Mastra**: the agent, its rules and its tools.
 - **Best Use of GitHub Copilot**: GitHub Actions runs the evals on every push.
