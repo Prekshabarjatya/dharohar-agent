@@ -56,7 +56,7 @@ I built this with an AI coding agent (Claude Code): I set the concept, the rules
 
 - **Local history belongs to locals.** With an open-weight model, a temple trust, a heritage walk group or a college club can run the guide on its own hardware. The same code ran Gemma on my laptop with no API at all.
 - **No lock-in.** Laptop, GPU box, Google AI Studio or Groq: same code, one env var. If a provider changes terms, the walk keeps working. (This happened during the build: an older Gemma version was retired on one provider, and switching took one line.)
-- **Open data, open code.** Every tour is grounded in public search results, and the whole project is MIT-style open on GitHub so anyone can add a walk for their own town.
+- **Open data, open code.** Every tour is grounded in public search results, and the whole project is MIT-licensed on GitHub so anyone can add a walk for their own town.
 - **What's next:** a "local story" box per stop, so residents can add the oral history that never made it to Wikipedia, read aloud as part of the tour.
 
 ## My Agent Session
