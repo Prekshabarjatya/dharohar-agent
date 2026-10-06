@@ -61,7 +61,7 @@ GitHub Actions runs the fast evals on every push.
 
 **Caching.** Gemma on the free tier takes about a minute per new stop (the search itself takes 1.4 seconds). So each stop's script is cached, and its audio is cached per voice. The second person to walk past Rajwada gets it in under a second, and costs no model call and no ElevenLabs credits.
 
-**Agent tracing.** Each tour is traced with Sentry as one agent run, with separate spans for the search, the Gemma call (model, tokens, latency) and the voice. That's how I found the one-minute Gemma step.
+**Agent tracing.** The pipeline is instrumented for Sentry: each tour is one agent run, with separate spans for the search, the Gemma call (model, tokens, latency) and the voice. I found the one-minute Gemma step by timing each part from outside; with tracing switched on, that breakdown shows up per request.
 
 I built this with an AI coding agent (Claude Code). I set the idea, the rules and the evals. The agent wrote most of the code, ran the tests and fixed what failed, and I reviewed every change. The session is below.
 
