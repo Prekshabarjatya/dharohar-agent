@@ -56,7 +56,7 @@ export const tools = { searchHeritage, generateAudio };
 // 3. fetch context -> generate constrained script -> speak it.
 // Gemma has no native tool-calling in Ollama, so the pipeline calls the tools in order instead of the model choosing.
 /** Output: { script, audioUrl: "/audio/<slug>_<ts>.mp3" | null, duration: seconds, warning?: string } */
-export type Tour = AudioResult & { script: string };
+export type Tour = AudioResult & { script: string; timing?: Record<string, number> };
 
 // Sentry agent tracing: one invoke_agent span per tour, child spans per tool call and LLM call
 // (gen_ai.* ops/attributes, so they show up in Sentry's AI Agents view). No-ops when SENTRY_DSN is unset.
@@ -73,9 +73,14 @@ export async function generateScript(monument: string, lang = 'en') {
     { op: 'gen_ai.chat', name: `chat ${MODEL_NAME}`, attributes: { 'gen_ai.request.model': MODEL_NAME, 'gen_ai.system': PROVIDER } },
     async (span) => {
       const t0 = Date.now();
-      const res = await mastra.getAgent('dharoharGuide').generate(
-        `Monument: ${monument}\n\nFacts:\n${facts}\n\nOpening line: ${LANGUAGES[lang].opening}\n\nWrite the walking tour script now, entirely in ${LANGUAGES[lang].name}${lang === 'en' ? '' : ' (native script, simple spoken words; keep monument names as locals say them)'}.`,
-      );
+      const prompt = `Monument: ${monument}\n\nFacts:\n${facts}\n\nOpening line: ${LANGUAGES[lang].opening}\n\nWrite the walking tour script now, entirely in ${LANGUAGES[lang].name}${lang === 'en' ? '' : ' (native script, simple spoken words; keep monument names as locals say them)'}.`;
+      const agent = mastra.getAgent('dharoharGuide');
+      // An 80-word script needs no reasoning: turn Gemma 4's thinking down, which is most of the latency.
+      // If the provider rejects the setting, fall back to a plain call.
+      const res = PROVIDER === 'google'
+        ? await agent.generate(prompt, { providerOptions: { google: { thinkingConfig: { thinkingLevel: (process.env.GEMMA_THINKING as any) || 'minimal' } } } })
+            .catch((e) => { console.error('thinking config rejected:', (e as Error).message); return agent.generate(prompt); })
+        : await agent.generate(prompt);
       console.log(`llm ${MODEL_INFO} ${Date.now() - t0}ms`);
       span.setAttribute('llm.ms', Date.now() - t0);
       span.setAttribute('gen_ai.usage.input_tokens', res.usage?.inputTokens ?? 0);
@@ -91,14 +96,16 @@ export function generateWalkingTour(monument: string, voice = 'rachel', language
     { op: 'gen_ai.invoke_agent', name: 'invoke_agent dharohar-guide', attributes: { 'gen_ai.agent.name': 'dharohar-guide', monument, voice, lang } },
     async (span) => {
       const key = `${lang}|${monument}`;
+      const t0 = Date.now();
       let script = scriptCache.get(key);
       span.setAttribute('cache.hit', !!script);
       if (!script) scriptCache.set(key, script = await generateScript(monument, lang));
+      const t1 = Date.now();
       const audio = await Sentry.startSpan(
         { op: 'gen_ai.execute_tool', name: 'execute_tool generate-audio', attributes: { 'gen_ai.tool.name': 'generate-audio', voice } },
         () => textToAudio(script!, monument, voice, lang)); // audio cached per voice inside
       if (!audio.audioUrl) span.setAttribute('audio.warning', audio.warning || '');
-      return { script, ...audio };
+      return { script, ...audio, timing: { scriptMs: t1 - t0, voiceMs: Date.now() - t1 } };
     });
 }
 
