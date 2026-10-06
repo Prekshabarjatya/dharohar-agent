@@ -3,7 +3,7 @@ import './instrument';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join, normalize, extname, sep } from 'node:path';
-import { generateWalkingTour } from './agent';
+import { generateWalkingTour, MODEL_INFO } from './agent';
 import { VOICES } from './tools/generateAudio';
 import * as Sentry from '@sentry/node';
 
@@ -16,7 +16,7 @@ createServer(async (req, res) => {
   if (ORIGINS.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.writeHead(204).end();
-  if (req.method === 'GET' && req.url === '/health') return res.end('ok');
+  if (req.method === 'GET' && req.url === '/health') return res.end(`ok ${MODEL_INFO}`);
   if (req.method === 'GET') {
     const path = normalize(join(PUBLIC, decodeURIComponent((req.url || '/').split('?')[0]) === '/' ? 'index.html' : decodeURIComponent(req.url!.split('?')[0])));
     if (!path.startsWith(PUBLIC + sep)) return res.writeHead(403).end(); // blocks ../ traversal
@@ -36,6 +36,7 @@ createServer(async (req, res) => {
   } catch (e) {
     console.error(e);
     Sentry.captureException(e);
-    res.writeHead(502).end('agent failed');
+    // short reason only, no stack; keys travel in headers so they never appear in these messages
+    res.writeHead(502).end(`agent failed: ${String((e as Error).message).slice(0, 200)}`);
   }
 }).listen(Number(process.env.PORT) || 8787, () => console.log('dharohar agent on', process.env.PORT || 8787));

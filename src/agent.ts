@@ -31,6 +31,7 @@ const MODEL_NAME = process.env.GOOGLE_GENERATIVE_AI_API_KEY ? process.env.GOOGLE
   : process.env.GROQ_API_KEY ? process.env.GROQ_MODEL || 'gemma2-9b-it'
   : process.env.OLLAMA_MODEL || 'gemma3:4b';
 const PROVIDER = process.env.GOOGLE_GENERATIVE_AI_API_KEY ? 'google' : process.env.GROQ_API_KEY ? 'groq' : 'ollama';
+export const MODEL_INFO = `${PROVIDER}/${MODEL_NAME}`;
 const model = PROVIDER === 'google' ? createGoogleGenerativeAI()(MODEL_NAME)
   : PROVIDER === 'groq' ? createGroq()(MODEL_NAME)
   : createOllama({ baseURL: process.env.OLLAMA_URL || 'http://localhost:11434/api' })(MODEL_NAME);
