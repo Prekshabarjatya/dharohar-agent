@@ -53,14 +53,15 @@ export async function placeToPoint(q) {
 }
 
 export async function nearbyWalk(start, label = 'Walk near you') {
-  let picked = [];
-  for (const radius of ['2000', '10000']) { // walkable first; widen for spread-out sites like Mandu
-    const g = await wiki({ action: 'query', list: 'geosearch', gscoord: `${start.lat}|${start.lng}`, gsradius: radius, gslimit: '100' });
+  let picked = [], fallback = [];
+  for (const radius of ['2000', '10000']) { // walkable first; widen for spread-out sites (Mandu) or modern areas
+    const g = await wiki({ action: 'query', list: 'geosearch', gscoord: `${start.lat}|${start.lng}`, gsradius: radius, gslimit: '200' });
     const all = g.query?.geosearch || [];
-    const heritage = all.filter(p => HERITAGE.test(p.title));
-    picked = (heritage.length >= 3 ? heritage : all).slice(0, 5);
+    picked = all.filter(p => HERITAGE.test(p.title)).slice(0, 5);
+    if (!fallback.length) fallback = all.slice(0, 5);
     if (picked.length >= 3) break;
   }
+  if (picked.length < 2) picked = fallback; // no heritage anywhere near: show what's there
   if (!picked.length) throw new Error('No heritage places found nearby.');
   const waypoints = orderRoute(start, picked.map(p => ({ label: p.title, monument: p.title, lat: p.lat, lng: p.lon, radius: 50 })));
   return { slug: 'custom', name: label, city: '', minutes: Math.max(10, waypoints.length * 6), waypoints };
