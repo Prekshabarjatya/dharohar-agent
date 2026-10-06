@@ -17,6 +17,8 @@ h1{font:700 2.4rem Georgia,serif;color:var(--acc)}
 .walk{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin:12px 0;color:inherit;font:inherit;cursor:pointer;min-height:96px}
 .walk h2{font:600 1.3rem Georgia,serif}
 .walk p{color:var(--mut);font-size:.95rem}
+.voice{display:flex;flex-direction:column;gap:6px;color:var(--mut);font-size:.95rem;margin-bottom:8px}
+.voice select{font:inherit;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);min-height:48px}
 .walk:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 #stage{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;padding:24px;text-align:center;background:var(--bg)}
 #stage.black{background:#000;color:#fff}
@@ -34,6 +36,14 @@ h1{font:700 2.4rem Georgia,serif;color:var(--acc)}
 <main id="home">
   <h1>धरोहर Dharohar</h1>
   <p class="tag">Put your phone in your pocket. Let's walk.</p>
+  <label class="voice">Guide's voice
+    <select id="voice">
+      <option value="rachel">Rachel: calm, female</option>
+      <option value="adam">Adam: deep, male</option>
+      <option value="domi">Domi: bright, female</option>
+      <option value="antoni">Antoni: warm, male</option>
+    </select>
+  </label>
   <div id="walks"></div>
 </main>
 
@@ -48,6 +58,8 @@ h1{font:700 2.4rem Georgia,serif;color:var(--acc)}
 import { WALKS, reachedWaypoint } from '/walk-core.js';
 const $ = id => document.getElementById(id);
 const audio = new Audio();
+try { $('voice').value = localStorage.dh_voice || 'rachel' } catch {}
+$('voice').onchange = () => { try { localStorage.dh_voice = $('voice').value } catch {} };
 let tours = [], played = new Set(), watchId = null, wake = null, queue = [];
 
 $('walks').innerHTML = WALKS.map(w => `<button class="walk" data-slug="${w.slug}">
@@ -65,7 +77,7 @@ async function startWalk(walk) {
   $('play').style.display = 'none';
   for (const [i, w] of walk.waypoints.entries()) { // sequential: one Gemma at a time
     $('msg').textContent = `Dharohar is unpacking 500 years of history… (${i + 1}/${walk.waypoints.length})`;
-    const r = await fetch('/script', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monument: w.monument }) }).catch(() => null);
+    const r = await fetch('/script', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monument: w.monument, voice: $('voice').value }) }).catch(() => null);
     tours.push(r?.ok ? await r.json() : { script: `${w.label}.`, audioUrl: null });
   }
   for (let n = 10; n > 0; n--) {

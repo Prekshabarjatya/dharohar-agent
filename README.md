@@ -22,5 +22,6 @@ Open `/`, pick a walk (Old Indore or Mahakal to Ram Ghat), and Dharohar writes a
 - The screen stays on but black (Wake Lock). Phones pause GPS and audio when the screen locks, so a black screen is how the walk keeps listening while using almost no battery on OLED.
 - GPS geofences (`public/walk-core.js`) play each stop when you come within its radius, with a short vibration. A stop never replays.
 - No location? Double-tap the black screen for the next stop.
+- Pick the guide's voice (Rachel, Adam, Domi, Antoni). Scripts are shared across voices, audio is cached per voice.
 - If ElevenLabs is down, the phone's own voice reads the script.
 - Installable as a home-screen app (`manifest.json`).

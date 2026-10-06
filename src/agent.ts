@@ -58,14 +58,11 @@ export async function generateScript(monument: string) {
   return res.text.trim();
 }
 
-const tourCache = new Map<string, Tour>(); // ponytail: per-process, cleared on restart
-export async function generateWalkingTour(monument: string): Promise<Tour> {
-  const hit = tourCache.get(monument);
-  if (hit) return hit;
-  const script = await generateScript(monument);
-  const tour = { script, ...(await textToAudio(script, monument)) };
-  if (tour.audioUrl) tourCache.set(monument, tour); // don't cache failures
-  return tour;
+const scriptCache = new Map<string, string>(); // ponytail: per-process, cleared on restart
+export async function generateWalkingTour(monument: string, voice = 'rachel'): Promise<Tour> {
+  let script = scriptCache.get(monument);
+  if (!script) scriptCache.set(monument, script = await generateScript(monument));
+  return { script, ...(await textToAudio(script, monument, voice)) }; // audio cached per voice inside
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

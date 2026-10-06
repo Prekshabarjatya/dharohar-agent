@@ -39,7 +39,7 @@ describe('audio', () => {
   it('saves an mp3 of a sensible length', async () => {
     stubElevenLabs('ok');
     const t = await generateWalkingTour('Lal Bagh Palace, Indore');
-    expect(t.audioUrl).toMatch(/^\/audio\/lal-bagh-palace-indore_\d+\.mp3$/);
+    expect(t.audioUrl).toMatch(/^\/audio\/lal-bagh-palace-indore-rachel_\d+\.mp3$/);
     expect(existsSync(join(AUDIO_DIR, t.audioUrl!.slice('/audio/'.length)))).toBe(true);
     expect(t.duration).toBeGreaterThan(10);
     expect(t.duration).toBeLessThan(60);
@@ -59,5 +59,14 @@ describe('audio', () => {
     const b = await generateWalkingTour('Ram Ghat, Ujjain');
     expect(b.audioUrl).toBe(a.audioUrl);
     expect(elevenCalls).toBe(1);
+  }, 120_000);
+
+  it('a different voice gets its own audio but reuses the script', async () => {
+    stubElevenLabs('ok');
+    const a = await generateWalkingTour('Ram Ghat, Ujjain', 'adam');
+    const b = await generateWalkingTour('Ram Ghat, Ujjain', 'rachel');
+    expect(a.audioUrl).toMatch(/-adam_/);
+    expect(a.audioUrl).not.toBe(b.audioUrl);
+    expect(a.script).toBe(b.script);
   }, 120_000);
 });
