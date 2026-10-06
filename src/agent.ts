@@ -5,6 +5,7 @@ import { createOllama } from 'ollama-ai-provider-v2';
 import { createGroq } from '@ai-sdk/groq';
 import { z } from 'zod';
 import 'dotenv/config';
+import { generateAudio, textToAudio, type AudioResult } from './tools/generateAudio';
 
 // 1. SerpApi tool: live facts about a monument
 export const searchHeritage = createTool({
@@ -42,10 +43,14 @@ RULES:
 });
 
 export const mastra = new Mastra({ agents: { dharoharGuide } });
+export const tools = { searchHeritage, generateAudio };
 
-// 3. fetch context -> generate constrained script.
-// Gemma has no native tool-calling in Ollama, so the tool runs first and its output goes into the prompt.
-export async function generateWalkingTour(monument: string) {
+// 3. fetch context -> generate constrained script -> speak it.
+// Gemma has no native tool-calling in Ollama, so the pipeline calls the tools in order instead of the model choosing.
+/** Output: { script, audioUrl: "/audio/<slug>_<ts>.mp3" | null, duration: seconds, warning?: string } */
+export type Tour = AudioResult & { script: string };
+
+export async function generateScript(monument: string) {
   const facts = await searchHeritage.execute!({ monument }, {} as any);
   const res = await mastra.getAgent('dharoharGuide').generate(
     `Monument: ${monument}\n\nFacts:\n${facts}\n\nWrite the walking tour script now.`,
@@ -53,6 +58,16 @@ export async function generateWalkingTour(monument: string) {
   return res.text.trim();
 }
 
+const tourCache = new Map<string, Tour>(); // ponytail: per-process, cleared on restart
+export async function generateWalkingTour(monument: string): Promise<Tour> {
+  const hit = tourCache.get(monument);
+  if (hit) return hit;
+  const script = await generateScript(monument);
+  const tour = { script, ...(await textToAudio(script, monument)) };
+  if (tour.audioUrl) tourCache.set(monument, tour); // don't cache failures
+  return tour;
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  generateWalkingTour(process.argv[2] || 'Rajwada, Indore').then(console.log, console.error);
+  generateWalkingTour(process.argv[2] || 'Rajwada, Indore').then(t => console.log(JSON.stringify(t, null, 2)), console.error);
 }
