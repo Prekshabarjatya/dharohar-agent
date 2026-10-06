@@ -25,3 +25,11 @@ Open `/`, pick a walk (Old Indore or Mahakal to Ram Ghat), and Dharohar writes a
 - Pick the guide's voice (Rachel, Adam, Domi, Antoni). Scripts are shared across voices, audio is cached per voice.
 - If ElevenLabs is down, the phone's own voice reads the script.
 - Installable as a home-screen app (`manifest.json`).
+
+## Offline, tracing, CI, deploy
+
+- **Offline:** `public/sw.js` caches the app and every stop's MP3 once a walk is prepared, so it keeps playing in dead zones.
+- **Sentry:** set `SENTRY_DSN`. Each tour is a `gen_ai.invoke_agent` trace with `execute_tool` spans (search-heritage, generate-audio) and a `gen_ai.chat` span with token usage.
+- **CI:** `.github/workflows/evals.yml` runs typecheck + geofence evals on every push; full Gemma evals on manual run.
+- **DigitalOcean:** `doctl apps create --spec .do/app.yaml` (Dockerfile build); point `OLLAMA_URL` at a 1-Click Ollama GPU Droplet with `ollama pull gemma3:4b`.
+- **Render:** `render.yaml` blueprint, with `GROQ_API_KEY` for hosted Gemma.

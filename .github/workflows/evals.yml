@@ -1,0 +1,29 @@
+name: evals
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx tsc
+      - run: npx vitest run src/walk.test.ts
+  # Full agent evals with real Gemma. Slow (model download), so manual only.
+  agent:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+      OLLAMA_MODEL: gemma3:4b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: curl -fsSL https://ollama.com/install.sh | sh && ollama pull gemma3:4b
+      - run: npm ci
+      - run: npx vitest run

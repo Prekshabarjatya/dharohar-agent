@@ -80,6 +80,7 @@ async function startWalk(walk) {
     const r = await fetch('/script', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monument: w.monument, voice: $('voice').value }) }).catch(() => null);
     tours.push(r?.ok ? await r.json() : { script: `${w.label}.`, audioUrl: null });
   }
+  tours.forEach(t => t.audioUrl && fetch(t.audioUrl).catch(() => {})); // warm the offline cache now, while there is signal
   for (let n = 10; n > 0; n--) {
     if (!location.hash.endsWith(walk.slug)) return; // exited during countdown
     $('msg').textContent = `Put your phone in your pocket in ${n}…`;
@@ -138,6 +139,7 @@ function route() {
   walk ? startWalk(walk) : show('home');
 }
 addEventListener('hashchange', route);
+navigator.serviceWorker?.register('/sw.js').catch(() => {});
 route();
 </script>
 </body>

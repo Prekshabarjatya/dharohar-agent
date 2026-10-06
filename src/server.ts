@@ -1,9 +1,11 @@
 // POST /script {monument, voice?} -> {script, audioUrl, duration, warning?}; GET / serves the walk UI from public/. Plain node:http, runs on Render or a DigitalOcean Droplet as-is.
+import './instrument';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join, normalize, extname, sep } from 'node:path';
 import { generateWalkingTour } from './agent';
 import { VOICES } from './tools/generateAudio';
+import * as Sentry from '@sentry/node';
 
 const PUBLIC = join(process.cwd(), 'public');
 const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/manifest+json', '.mp3': 'audio/mpeg', '.svg': 'image/svg+xml' };
@@ -33,6 +35,7 @@ createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(tour));
   } catch (e) {
     console.error(e);
+    Sentry.captureException(e);
     res.writeHead(502).end('agent failed');
   }
 }).listen(Number(process.env.PORT) || 8787, () => console.log('dharohar agent on', process.env.PORT || 8787));
