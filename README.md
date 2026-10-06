@@ -5,7 +5,7 @@ Audio-first heritage walking tours for Indian cities. A Mastra agent fetches liv
 - `POST /script {"monument": "Rajwada, Indore"}` → `{"script": "...", "audioUrl": "/audio/rajwada-indore_<ts>.mp3", "duration": 32}`
 - `GET /audio/<file>.mp3` serves the spoken guide (ElevenLabs `eleven_multilingual_v2`, so Hindi works too).
 - Audio is cached per monument, so a second visitor costs no ElevenLabs credits. If ElevenLabs fails, the response has `audioUrl: null` and a `warning`, and the script is still returned.
-- Model: Gemma via Google AI Studio (`gemma-4-31b-it`) when `GOOGLE_GENERATIVE_AI_API_KEY` is set, else Groq when `GROQ_API_KEY` is set, else local Ollama (`gemma3:4b`).
+- Model: Gemma via Google AI Studio (`gemma-4-26b-a4b-it`) when `GOOGLE_GENERATIVE_AI_API_KEY` is set, else Groq when `GROQ_API_KEY` is set, else local Ollama (`gemma3:4b`).
 - Evals (`npm test`, ElevenLabs mocked, no credits used) check audio, fallback and caching, and fail if a script runs over 100 words, mentions screens/apps/maps, or skips the opening line.
 
 ```

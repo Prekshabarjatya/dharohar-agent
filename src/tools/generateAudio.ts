@@ -42,7 +42,7 @@ export async function textToAudio(text: string, monument: string, voice: string 
     return { audioUrl, duration };
   } catch (e) {
     console.error('audio:', (e as Error).message);
-    return { audioUrl: null, duration, warning: 'Audio generation failed, text only' };
+    return { audioUrl: null, duration, warning: `Audio generation failed, text only (${(e as Error).message})` };
   }
 }
 
