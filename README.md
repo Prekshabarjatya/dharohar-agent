@@ -13,7 +13,7 @@ cp .env.example .env   # add SERPAPI_KEY and ELEVENLABS_API_KEY
 npm install && npm start
 ```
 
-Live: https://dharohar-agent.onrender.com
+Live: https://dharohar-agent.onrender.com · Write-up: https://dev.to/preksha_barjatya/dharohar-an-open-source-ai-audio-guide-that-makes-you-put-your-phone-in-your-pocket-1451
 
 ## The black screen
 
