@@ -1,0 +1,27 @@
+{
+ "slug": "old-indore",
+ "voice": "rachel",
+ "lang": "en",
+ "stops": [
+  {
+   "script": "Namaste. Put your phone in your pocket, and let's walk. You are standing before Rajwada Palace. This seven-storey palace was built in 1747 by Malhar Rao Holkar. It served the Holkar dynasty until 1880. The site has two major parts, a grand palace and a temple. These seven storeys have seen the rise of empires, colonial conflict, and fires. It is a significant monument of the Maratha Empire.",
+   "audioUrl": "/premade/old-indore-1.mp3",
+   "duration": 28
+  },
+  {
+   "script": "Namaste. Put your phone in your pocket, and let's walk. As we walk along Dhar Road, we approach the Gopal Mandir, which is dedicated to Lord Krishna. Completed in 1832 under the patronage of Maharani Krishnabai Holkar, the temple stands beside Rajwada, the royal residence of the Holkars. The temple is built in the Maratha Style, reflecting the Holkar family's great knack for arts and architecture.",
+   "audioUrl": "/premade/old-indore-2.mp3",
+   "duration": 27
+  },
+  {
+   "script": "Namaste. Put your phone in your pocket, and let's walk. You are approaching Kanch Mandir, the famous Glass Temple. This Jain temple was built by Sir Seth Hukumchand Jain. Every wall, ceiling, and pillar is part of an extraordinary masterpiece. Inside, you will find the black onyx idol of Lord Mahavira and the idol of Lord Shantinath.",
+   "audioUrl": "/premade/old-indore-3.mp3",
+   "duration": 23
+  },
+  {
+   "script": "Namaste. Put your phone in your pocket, and let's walk. We are approaching the Krishnapura Chhatris in Nandlalpura. These elegant structures were built in the mid nineteenth century by the Holkar dynasty. They are cenotaphs built to honor the memory of deceased royals, including Maharani Krishnabai. As you approach these structures, you are seeing the monuments of the former rulers of the Indore state.",
+   "audioUrl": "/premade/old-indore-4.mp3",
+   "duration": 26
+  }
+ ]
+}

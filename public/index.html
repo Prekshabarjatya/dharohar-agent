@@ -6,78 +6,102 @@
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="/manifest.json">
 <title>Dharohar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6efe3;--ink:#2b1d12;--mut:#6e5946;--acc:#a8401f;--card:#fffaf2;--line:#e4d6c1;--ok:#3f7a3a}
-@media (prefers-color-scheme:dark){:root{--bg:#1b140e;--ink:#f3e8d8;--mut:#b8a38d;--acc:#e8875f;--card:#261c14;--line:#3a2c20;--ok:#8fc98a}}
+/* Black and white only. Weight and space carry hierarchy, not colour. */
+:root{--paper:#ffffff;--paper2:#f2f2f2;--ink:#000000;--ink2:#6b6b6b;--rule:#e3e3e3;--sindoor:#000000;--indigo:#000000;--ok:#000000;
+  --serif:'Fraunces',Georgia,serif;--sans:system-ui,-apple-system,'Segoe UI',sans-serif}
+@media (prefers-color-scheme:dark){:root{--paper:#000000;--paper2:#161616;--ink:#ffffff;--ink2:#8f8f8f;--rule:#262626;--sindoor:#ffffff;--indigo:#ffffff;--ok:#ffffff}}
 *{box-sizing:border-box;margin:0}
-body{background:var(--bg);color:var(--ink);font:18px/1.5 system-ui,sans-serif}
-main,.screen{max-width:560px;margin:auto;padding:28px 16px 40px}
-h1{font:700 2.4rem Georgia,serif;color:var(--acc)}
-h2{font:600 1.35rem Georgia,serif}
-.tag{color:var(--mut);margin:6px 0 20px;font-size:1.1rem}
-.mut{color:var(--mut);font-size:.95rem}
-.row{display:flex;gap:10px}.row>*{flex:1}
-label.f{display:flex;flex-direction:column;gap:6px;color:var(--mut);font-size:.9rem}
-select,input{font:inherit;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);min-height:48px;width:100%}
-button{font:600 1rem system-ui;cursor:pointer;min-height:48px;border-radius:12px}
-.primary{width:100%;border:0;background:var(--acc);color:#fff;padding:14px 18px;font-size:1.05rem}
-.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc);padding:12px 16px}
-@media (prefers-color-scheme:dark){.primary{color:#1b140e}}
-.primary:disabled{opacity:.45;cursor:default}
-.any{display:flex;gap:8px;margin:12px 0}.any input{flex:1;min-width:0}.any button{flex:none}
-.err{color:var(--acc);min-height:1.4em;font-size:.95rem;margin-top:8px}
-.err .ghost{min-height:36px;padding:6px 12px;margin-left:8px;font-size:.9rem}
-.sec{margin-top:26px}
-.cities{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
-.city{text-align:left;background:var(--card);border:1px solid var(--line);color:inherit;padding:12px 14px;min-height:64px}
-.city b{display:block;font:600 1.05rem Georgia,serif}.city span{font:400 .82rem system-ui;color:var(--mut)}
-.inst{color:var(--ok)!important}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-.stops{list-style:none;padding:0;margin:18px 0}
-.stops li{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
-.n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font:600 .9rem system-ui}
-.st{flex:none;font:600 .8rem system-ui;margin-left:auto;white-space:nowrap}
-.st.ready{color:var(--ok)}.st.wait{color:var(--mut)}.st.text{color:var(--acc)}
+body{background:var(--paper);color:var(--ink);font:17px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+main,.screen{padding:28px clamp(20px,5vw,72px) 120px}
+.mark{display:flex;align-items:baseline;gap:10px}
+.mark b{font:650 2.1rem/1 var(--serif);letter-spacing:-.01em}
+.mark span{font:600 .72rem var(--sans);letter-spacing:.24em;color:var(--ink2)}
+.tag{color:var(--ink2);margin:8px 0 22px}
+h2{font:650 1.25rem var(--serif)}
+.eyebrow{font:700 .7rem var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--ink2)}
+.mut{color:var(--ink2);font-size:.9rem}
+button{font:600 1rem var(--sans);cursor:pointer;min-height:48px;border-radius:10px;color:inherit}
+.primary{width:100%;border:0;background:var(--sindoor);color:#fff;padding:14px 18px;font-size:1.05rem;display:flex;align-items:center;justify-content:center;gap:10px}
+@media (prefers-color-scheme:dark){.primary{color:#000}}
+.primary:disabled{background:var(--paper2);color:var(--ink2);cursor:default}
+.ghost{background:transparent;border:1px solid var(--rule);padding:10px 16px}
+.any{display:flex;gap:8px;margin:10px 0 0;max-width:640px}
+#near{max-width:640px}
+.prefs-wrap{max-width:640px}
+input,select{font:inherit;color:var(--ink);background:var(--paper2);border:1px solid transparent;border-radius:10px;padding:12px 14px;min-height:48px;width:100%}
+.any input{flex:1;min-width:0}.any button{flex:none}
+.prefs-wrap{margin-top:14px}.prefs-wrap summary{cursor:pointer;color:var(--ink2);font-size:.88rem;list-style:none;min-height:32px;display:inline-flex;align-items:center}.prefs-wrap summary::after{content:'\00a0+'}.prefs-wrap[open] summary::after{content:'\00a0–'}
+.prefs{display:flex;gap:8px;margin-top:6px}
+.prefs label{flex:1;display:flex;flex-direction:column;gap:4px}
+.prefs select{padding:10px 12px;font-size:.95rem}
+.err{color:var(--ink);min-height:1.4em;font-size:.92rem;margin-top:10px}
+.err .ghost{min-height:36px;padding:6px 12px;margin-left:6px;font-size:.85rem}
+.sec{margin-top:30px}
+.sec h2{margin:4px 0 6px}
+/* city list: rows on hairlines, not cards */
+.cities{list-style:none;padding:0;margin:8px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));column-gap:40px;border-top:1px solid var(--rule)}
+.city{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 12px;width:100%;padding:13px 2px;border-bottom:1px solid var(--rule)}
+.city b{font:500 1.15rem var(--serif)}
+.city small{grid-column:1;font-size:.85rem;color:var(--ink2)}
+.city em{grid-row:1/3;grid-column:2;font:600 .75rem var(--sans);font-style:normal;color:var(--ink2);text-align:right}
+.city em.inst{color:var(--ink)}
+.city:hover b,.city:focus-visible b{color:var(--sindoor)}
+button:focus-visible,select:focus-visible,input:focus-visible,.city:focus-visible{outline:2px solid var(--sindoor);outline-offset:2px}
+/* plan: the route as a walking trail */
+.back{border:0;background:none;padding:0;min-height:40px;color:var(--ink2);font-weight:500}
+#ptitle{font:650 1.8rem/1.15 var(--serif);margin-top:10px}
+.stops{list-style:none;padding:0;margin:22px 0 8px;max-width:760px}
+.stops li{position:relative;display:grid;grid-template-columns:34px 1fr auto;gap:12px;padding-bottom:22px}
+.stops li:not(:last-child)::before{content:'';position:absolute;left:16px;top:32px;bottom:2px;border-left:2px dotted var(--rule)}
+.n{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;font:600 .9rem var(--serif);background:var(--paper)}
+.stops b{font:500 1.08rem var(--serif);display:block}
+.st{font:600 .75rem var(--sans);white-space:nowrap;padding-top:6px}
+.st.ready{color:var(--ink)}.st.wait,.st.busy{color:var(--ink2)}.st.text{color:var(--ink)}
 .dots::after{content:'';animation:d 1.2s steps(4) infinite}@keyframes d{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+.dock{position:fixed;left:0;right:0;bottom:0;padding:12px 20px max(16px,env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--paper) 30%)}
+.dock{padding-left:clamp(20px,5vw,72px);padding-right:clamp(20px,5vw,72px)}
+#pstatus{text-align:center;margin-bottom:8px;font-size:.85rem}
+/* walk: black, nothing to look at */
 #walk{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center;background:#000;color:#fff}
-#msg{font:600 1.5rem Georgia,serif;max-width:22ch}
-#play{display:none;width:200px;height:200px;border-radius:50%;border:2px solid #fff;background:transparent;color:#fff;font:700 1.2rem system-ui;letter-spacing:.1em;animation:pulse 2s infinite}
-@keyframes pulse{50%{transform:scale(1.06);box-shadow:0 0 40px #fff4}}
+#msg{font:500 1.6rem/1.3 var(--serif);max-width:20ch}
+#play{display:none;width:190px;height:190px;border-radius:50%;border:1.5px solid #fff;background:transparent;color:#fff;font:600 1rem var(--sans);letter-spacing:.2em;animation:pulse 2.4s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 14px #ffffff12}}
 @media (prefers-reduced-motion:reduce){#play{animation:none}.dots::after{animation:none;content:'…'}}
-.top{position:fixed;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;opacity:.45;font:600 .8rem system-ui}
-.top button{background:none;border:1px solid currentColor;color:inherit;border-radius:8px;padding:6px 12px;min-height:36px;font:600 .8rem system-ui}
-#next{position:fixed;bottom:max(90px,12%);left:16px;right:16px;opacity:.55;font:500 1rem/1.4 system-ui}
-#here{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);opacity:.4;background:none;border:1px solid #fff;color:#fff;padding:8px 18px;min-height:40px;font:600 .85rem system-ui;display:none}
+.top{position:fixed;top:max(14px,env(safe-area-inset-top));left:16px;right:16px;display:flex;justify-content:space-between;align-items:center;opacity:.45;font:600 .75rem var(--sans);letter-spacing:.08em}
+.top button{background:none;border:1px solid currentColor;border-radius:8px;padding:6px 12px;min-height:34px;font:600 .75rem var(--sans);letter-spacing:.1em}
+#next{position:fixed;bottom:max(96px,13%);left:20px;right:20px;opacity:.55;font:400 1rem/1.45 var(--sans)}
+#here{position:fixed;bottom:max(26px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);opacity:.4;background:none;border:1px solid #fff;padding:8px 18px;min-height:40px;font:600 .8rem var(--sans);letter-spacing:.08em;display:none}
 #here:focus,#here:hover{opacity:1}
 </style>
 </head>
 <body>
 <main id="home">
-  <h1>धरोहर Dharohar</h1>
-  <p class="tag">Put your phone in your pocket. Let's walk.</p>
-  <div class="row">
-    <label class="f">Voice
-      <select id="voice"><option value="rachel">Rachel · calm</option><option value="adam">Adam · deep</option><option value="domi">Domi · bright</option><option value="antoni">Antoni · warm</option></select></label>
-    <label class="f">Language
-      <select id="lang"><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option><option value="gu">ગુજરાતી</option><option value="bn">বাংলা</option><option value="pa">ਪੰਜਾਬੀ</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="kn">ಕನ್ನಡ</option><option value="ml">മലയാളം</option></select></label>
-  </div>
-  <div class="sec"><button id="near" class="primary" type="button">📍 Walk where I am</button></div>
-  <form id="any" class="any"><input id="q" placeholder="Or type any place, e.g. Lal Bagh Palace" aria-label="Place name" required><button class="ghost">Go</button></form>
+  <div class="mark"><b>धरोहर</b><span>DHAROHAR</span></div>
+  <p class="tag">Heritage walks you listen to, phone in pocket.</p>
+  <button id="near" class="primary" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Walk where I am</button>
+  <form id="any" class="any"><input id="q" placeholder="Search a place" aria-label="Search a place" required><button class="ghost">Go</button></form>
+  <details class="prefs-wrap"><summary>Voice &amp; language</summary>
+  <div class="prefs">
+    <label><span class="eyebrow">Voice</span><select id="voice"><option value="rachel">Rachel · calm</option><option value="adam">Adam · deep</option><option value="domi">Domi · bright</option><option value="antoni">Antoni · warm</option></select></label>
+    <label><span class="eyebrow">Language</span><select id="lang"><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option><option value="gu">ગુજરાતી</option><option value="bn">বাংলা</option><option value="pa">ਪੰਜਾਬੀ</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="kn">ಕನ್ನಡ</option><option value="ml">മലയാളം</option></select></label>
+  </div></details>
   <div id="err" class="err" role="alert"></div>
-  <div class="sec">
-    <h2>Explore a city</h2>
-    <p class="mut">Major heritage cities. <span class="inst">Instant</span> walks play right away; others are written when you pick them.</p>
-    <div id="cities" class="cities"></div>
-  </div>
+  <section class="sec" aria-labelledby="ch">
+    <div class="eyebrow">Explore</div>
+    <h2 id="ch">Heritage cities</h2>
+    <ul id="cities" class="cities"></ul>
+  </section>
 </main>
 
 <section id="plan" class="screen" hidden>
-  <button id="back" class="ghost" type="button">← Back</button>
-  <h2 id="ptitle" style="margin-top:18px;font-size:1.7rem"></h2>
+  <button id="back" class="back" type="button">← All walks</button>
+  <h2 id="ptitle"></h2>
   <p id="pmeta" class="mut"></p>
   <ol id="stops" class="stops"></ol>
-  <p id="pstatus" class="mut" aria-live="polite"></p>
-  <div class="sec"><button id="start" class="primary" disabled>Start walk</button></div>
+  <div class="dock"><div><p id="pstatus" class="mut" aria-live="polite"></p><button id="start" class="primary" disabled>Start walk</button></div></div>
 </section>
 
 <div id="walk" role="main" aria-live="polite">
@@ -93,19 +117,22 @@ import { WALKS, CITIES, dist, bearingWord, reachedWaypoint, placeToPoint, nearby
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const store = (k, v) => { try { v === undefined ? (v = localStorage[k]) : (localStorage[k] = v) } catch {} return v; };
-$('voice').value = store('dh_voice') || 'rachel'; $('voice').onchange = () => store('dh_voice', $('voice').value);
-$('lang').value = store('dh_lang') || 'en'; $('lang').onchange = () => store('dh_lang', $('lang').value);
+$('voice').value = store('dh_voice') || 'rachel'; $('voice').onchange = () => { store('dh_voice', $('voice').value); renderCities(myPos); };
+$('lang').value = store('dh_lang') || 'en'; $('lang').onchange = () => { store('dh_lang', $('lang').value); renderCities(myPos); };
 
 const audio = new Audio();
 let walk = null, tours = [], played = new Set(), watchId = null, wake = null, lastPos = null, playing = false, cur = -1, waiting = -1;
 
 // ---------- home ----------
+let myPos = null;
 function renderCities(me) {
+  myPos = me;
   const list = me ? [...CITIES].sort((a, b) => dist(me, a) - dist(me, b)) : CITIES;
   $('cities').innerHTML = list.map(c => {
     const km = me ? Math.round(dist(me, c) / 1000) : null;
-    const sub = c.walk ? '<span class="inst">Instant</span>' : `<span>${esc(c.anchor)}</span>`;
-    return `<button class="city" data-city="${esc(c.name)}"><b>${esc(c.name)}</b>${sub}${km !== null ? `<span> · ${km < 30 ? 'near you' : km + ' km'}</span>` : ''}</button>`;
+    const instant = c.walk && $('voice').value === 'rachel' && $('lang').value === 'en'; // pre-made audio is English, Rachel
+    const right = instant ? '<em class="inst">Instant</em>' : km !== null ? `<em>${km < 30 ? 'Near you' : km + ' km'}</em>` : '<em></em>';
+    return `<li><button class="city" data-city="${esc(c.name)}"><b>${esc(c.name)}</b>${right}<small>${esc(c.anchor)}${instant && km !== null ? ` · ${km < 30 ? 'near you' : km + ' km'}` : ''}</small></button></li>`;
   }).join('');
   document.querySelectorAll('.city').forEach(b => b.onclick = () => openCity(CITIES.find(c => c.name === b.dataset.city)));
 }
@@ -183,20 +210,20 @@ const done = t => t.status === 'ready' || t.status === 'text';
 function renderStops() {
   $('stops').innerHTML = walk.waypoints.map((p, i) => {
     const m = i ? Math.round(dist(walk.waypoints[i - 1], p)) : null;
-    const st = { ready: ['ready', '✓ Ready'], text: ['text', 'Text only'], busy: ['wait dots', 'Writing'], wait: ['wait', 'Queued'] }[tours[i].status];
+    const st = { ready: ['ready', 'Ready'], text: ['text', 'Text only'], busy: ['busy dots', 'Writing'], wait: ['wait', 'Queued'] }[tours[i].status];
     return `<li><span class="n">${i + 1}</span><div><b>${esc(p.label)}</b><div class="mut">${m === null ? 'Start here' : `${m < 1000 ? m + ' m' : (m / 1000).toFixed(1) + ' km'} from stop ${i}`}</div></div><span class="st ${st[0]}">${st[1]}</span></li>`;
   }).join('');
 }
 function status(t0) {
   const n = tours.filter(done).length, s = Math.round((Date.now() - t0) / 1000);
   if (n === tours.length) return;
-  $('pstatus').textContent = `${n} of ${tours.length} ready · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}. New places take about a minute each to write; you can start as soon as stop 1 is ready.`;
+  $('pstatus').textContent = `${n} of ${tours.length} stops ready · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 function ready() {
   const ok = done(tours[0]);
   $('start').disabled = !ok;
-  $('start').textContent = ok ? 'Start walk' : 'Preparing stop 1…';
-  if (tours.every(done)) $('pstatus').textContent = `All ${tours.length} stops ready and saved for offline.`;
+  $('start').textContent = ok ? 'Start walk' : 'Writing the first stop…';
+  if (tours.every(done)) $('pstatus').textContent = `All ${tours.length} stops ready · saved for offline`;
 }
 $('back').onclick = () => { prepToken++; show('home'); };
 $('start').onclick = () => startWalk();
